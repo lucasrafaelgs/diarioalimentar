@@ -340,8 +340,7 @@ header p{
   box-shadow:var(--shadow);
   border-radius:var(--radius-lg);
   padding:16px 16px 14px;
-  position:sticky;
-  top:16px;
+  margin-bottom:16px;
 }
 .target{margin-bottom:14px;}
 .target:last-child{margin-bottom:0;}
@@ -521,9 +520,9 @@ header p{
     <div class="water-card">
       <h2>Água <small id="waterHeaderTotal">0 ml</small></h2>
       <div class="water-quick">
-        <button data-water="200">+200ml (copo)</button>
+        <button data-water="200">+200ml</button>
         <button data-water="300">+300ml</button>
-        <button data-water="500">+500ml (garrafinha)</button>
+        <button data-water="500">+500ml</button>
       </div>
       <div class="water-custom">
         <input type="number" id="waterCustomMl" placeholder="quantidade personalizada (ml)">
@@ -608,7 +607,7 @@ const MEALS = [
   {key:'almoco', label:'Almoço'},
   {key:'lanche', label:'Lanche da tarde'},
   {key:'jantar', label:'Jantar'},
-  {key:'extra', label:'Refeições extras / beliscos'},
+  {key:'extra', label:'Refeições extras'},
 ];
 
 const WATER_TARGET_ML = 3500;
@@ -938,8 +937,7 @@ function renderWater(){
     return;
   }
   list.innerHTML = waterEntries.map(e=>{
-    const time = new Date(e.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-    return `<div class="water-log-row"><span>${time} — ${Math.round(Number(e.ml))} ml</span><button class="rm" data-waterrm="${e.id}">×</button></div>`;
+    return `<div class="water-log-row"><span>${Math.round(Number(e.ml))} ml</span><button class="rm" data-waterrm="${e.id}">×</button></div>`;
   }).join('');
   list.querySelectorAll('[data-waterrm]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
