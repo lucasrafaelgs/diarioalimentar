@@ -628,6 +628,14 @@ function emptyDay(){ return MEALS.reduce((acc,m)=>{acc[m.key]=[];return acc;},{}
 function newItem(foodId){ const f=FOOD_MAP[foodId]; return {foodId, qty:f.dq, custom:null}; }
 function newCustomItem(){ return {foodId:'custom', custom:{name:'', kcal:0, carb:0, prot:0, sat:0}}; }
 
+function pluralUnit(unit, qty){
+  if(unit==='g' || unit==='ml') return unit; // essas não pluralizam
+  const isSingular = Math.abs((qty||0) - 1) < 0.0001;
+  if(isSingular) return unit;
+  const irregular = {'porção':'porções'};
+  return irregular[unit] || unit + 's';
+}
+  
 function computeItemValues(item){
   if(item.foodId==='custom'){
     const c = item.custom || {};
@@ -735,7 +743,7 @@ function renderRow(rowsEl, mealKey, item, idx){
   wrap.appendChild(qtyInput);
 
   const unitSpan = document.createElement('span');
-  unitSpan.className='unit'; unitSpan.textContent=f.unit;
+  unitSpan.className='unit'; unitSpan.textContent = pluralUnit(f.unit, item.qty);
   wrap.appendChild(unitSpan);
 
   const rm = document.createElement('button');
@@ -749,6 +757,7 @@ function renderRow(rowsEl, mealKey, item, idx){
   });
   qtyInput.addEventListener('input',()=>{
     item.qty = parseFloat(qtyInput.value)||0;
+    unitSpan.textContent = pluralUnit(f.unit, item.qty);
     renderSummary(); updateMealHeader(mealKey); scheduleSave();
   });
   rm.addEventListener('click',()=>{
