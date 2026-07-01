@@ -492,6 +492,7 @@ const FOOD_DB = [
   {id:'whey_iso', cat:'Suplementação', name:'Whey Isolado Max Titanium (30g)', unit:'dose', base:1, kcal:110, carb:1, prot:26, sat:0, dq:1},
   {id:'creatina', cat:'Suplementação', name:'Creatina monohidratada (5g)', unit:'dose', base:1, kcal:0, carb:0, prot:0, sat:0, dq:1},
   {id:'pretreino', cat:'Suplementação', name:'Pré-treino Égide (6g)', unit:'dose', base:1, kcal:3, carb:0.8, prot:0, sat:0, dq:1},
+  {id:'crepioca', cat:'Carboidratos', name:'Crepioca', unit:'unidade', base:1, kcal:260, carb:18, prot:18, sat:5, dq:1},
 ];
 const FOOD_MAP = Object.fromEntries(FOOD_DB.map(f=>[f.id,f]));
 const CATS = [...new Set(FOOD_DB.map(f=>f.cat))];
