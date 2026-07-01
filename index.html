@@ -8,15 +8,22 @@
 <style>
 :root{
   --bg:#FFFFFF;
-  --bg-soft:#F3F3F3;
+  --bg-soft:#F2F3F6;
   --surface:#FFFFFF;
-  --ink:#141414;
-  --ink-soft:#6E6E6E;
-  --line:#DBDBDB;
+  --ink:#181B20;
+  --ink-soft:#767C87;
+  --line:#E7E9EE;
   --fill-mid:#4A4A4A;
   --fill-light:#B8B8B8;
+  --blue:#2F6FED; --blue-soft:#EAF1FE; --blue-text:#1D4ED8;
+  --green:#16A34A; --green-soft:#E7F6EC; --green-text:#166534;
+  --amber:#D97706; --amber-soft:#FDF2E3; --amber-text:#92400E;
+  --red:#E0483C; --red-soft:#FDEAEA; --red-text:#B0231A;
+  --shadow: 0 1px 2px rgba(16,24,40,.04), 0 4px 10px rgba(16,24,40,.05);
+  --radius-lg:16px;
+  --radius-md:12px;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  --mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+  --mono: var(--sans);
 }
 *{box-sizing:border-box;}
 body{
@@ -24,6 +31,7 @@ body{
   background:var(--bg-soft);
   color:var(--ink);
   font-family:var(--sans);
+  font-variant-numeric:tabular-nums;
   padding:24px 16px 64px;
 }
 .wrap{max-width:980px;margin:0 auto;}
@@ -31,17 +39,19 @@ body{
 header{
   display:flex;
   flex-wrap:wrap;
-  align-items:baseline;
+  align-items:center;
   justify-content:space-between;
   gap:12px;
-  border-bottom:2px solid var(--ink);
-  padding-bottom:14px;
-  margin-bottom:20px;
+  background:var(--surface);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow);
+  padding:16px 20px;
+  margin-bottom:22px;
 }
 header h1{
   font-family:var(--sans);
   font-weight:700;
-  font-size:26px;
+  font-size:22px;
   margin:0;
   letter-spacing:-0.2px;
 }
@@ -58,16 +68,17 @@ header p{
   color:var(--ink-soft);
 }
 .session-bar button{
-  border:1px solid var(--ink);
-  background:var(--surface);
-  color:var(--ink);
+  border:none;
+  background:var(--red-soft);
+  color:var(--red-text);
   font-family:var(--sans);
+  font-weight:600;
   font-size:12px;
-  padding:5px 10px;
-  border-radius:6px;
+  padding:8px 16px;
+  border-radius:999px;
   cursor:pointer;
 }
-.session-bar button:hover{background:var(--ink);color:#fff;}
+.session-bar button:hover{background:var(--red);color:#fff;}
 
 /* ---------- Auth gate ---------- */
 #authGate{
@@ -78,8 +89,9 @@ header p{
 }
 .auth-box{
   background:var(--surface);
-  border:1px solid var(--ink);
-  border-radius:10px;
+  border:none;
+  box-shadow:var(--shadow);
+  border-radius:var(--radius-lg);
   padding:28px 26px;
   width:100%;
   max-width:340px;
@@ -106,23 +118,23 @@ header p{
 }
 .auth-box button{
   width:100%;
-  padding:10px;
-  background:var(--ink);
+  padding:11px;
+  background:var(--blue);
   color:#fff;
   border:none;
-  border-radius:6px;
+  border-radius:10px;
   font-size:14px;
   font-weight:600;
   cursor:pointer;
 }
-.auth-box button:hover{background:#000;}
+.auth-box button:hover{background:var(--blue-text);}
 .auth-error{
   font-size:12px;
-  color:var(--ink);
-  background:var(--bg-soft);
-  border:1px dashed var(--ink);
-  padding:6px 8px;
-  border-radius:6px;
+  color:var(--red-text);
+  background:var(--red-soft);
+  border:none;
+  padding:8px 10px;
+  border-radius:8px;
   margin-top:10px;
   display:none;
 }
@@ -132,43 +144,45 @@ header p{
   align-items:center;
   gap:8px;
   background:var(--surface);
-  border:1px solid var(--line);
-  border-radius:10px;
-  padding:8px 10px;
+  border:none;
+  box-shadow:var(--shadow);
+  border-radius:var(--radius-md);
+  padding:10px 12px;
   margin-bottom:22px;
 }
 .datebar button{
-  border:1px solid var(--line);
+  border:none;
   background:var(--bg-soft);
   color:var(--ink);
-  border-radius:8px;
-  width:32px;height:32px;
+  border-radius:10px;
+  width:34px;height:34px;
   font-size:16px;
   cursor:pointer;
 }
-.datebar button:hover{background:var(--ink);color:#fff;border-color:var(--ink);}
+.datebar button:hover{background:var(--ink);color:#fff;}
 .datebar input[type="date"]{
   border:none;
   background:transparent;
-  font-family:var(--mono);
+  font-family:var(--sans);
   font-size:14px;
   color:var(--ink);
   flex:1;
 }
 .datebar .today-btn{
-  border:1px solid var(--ink);
-  color:var(--ink);
-  background:transparent;
+  border:none;
+  color:var(--blue-text);
+  background:var(--blue-soft);
   font-family:var(--sans);
+  font-weight:600;
   font-size:12px;
-  padding:0 10px;
+  padding:0 14px;
   width:auto;
-  border-radius:8px;
+  border-radius:999px;
 }
 .savestate{
   font-size:11px;
   color:var(--ink-soft);
-  font-family:var(--mono);
+  font-family:var(--sans);
   min-width:70px;
   text-align:right;
 }
@@ -185,9 +199,10 @@ header p{
 
 .meal{
   background:var(--surface);
-  border:1px solid var(--line);
-  border-radius:12px;
-  padding:16px 16px 12px;
+  border:none;
+  box-shadow:var(--shadow);
+  border-radius:var(--radius-lg);
+  padding:18px 18px 14px;
   margin-bottom:16px;
 }
 .meal h2{
@@ -200,41 +215,47 @@ header p{
   align-items:baseline;
 }
 .meal h2 small{
-  font-family:var(--mono);
+  font-family:var(--sans);
   font-size:12px;
   color:var(--ink-soft);
-  font-weight:normal;
+  font-weight:600;
+  background:var(--bg-soft);
+  padding:3px 9px;
+  border-radius:999px;
 }
 .item-row{
   display:grid;
   grid-template-columns:1fr 70px 60px 26px;
   gap:8px;
   align-items:center;
-  padding:6px 0;
-  border-bottom:1px dashed var(--line);
+  padding:7px 0;
+  border-bottom:1px solid var(--line);
   font-size:13px;
 }
 .item-row:last-of-type{border-bottom:none;}
 .item-row select, .item-row input{
   font-family:var(--sans);
   font-size:13px;
-  padding:6px 7px;
+  padding:7px 8px;
   border:1px solid var(--line);
-  border-radius:7px;
+  border-radius:9px;
   background:var(--bg-soft);
   color:var(--ink);
   width:100%;
 }
 .item-row .unit{
-  font-family:var(--mono);
+  font-family:var(--sans);
   font-size:11px;
   color:var(--ink-soft);
 }
 .item-row .rm{
   border:none;
-  background:none;
-  color:var(--ink);
-  font-size:16px;
+  background:var(--red-soft);
+  color:var(--red-text);
+  font-size:15px;
+  line-height:24px;
+  width:24px;height:24px;
+  border-radius:999px;
   cursor:pointer;
   text-align:center;
 }
@@ -245,95 +266,108 @@ header p{
   margin:4px 0 8px;
 }
 .custom-fields input{
-  font-family:var(--mono);
+  font-family:var(--sans);
   font-size:12px;
-  padding:5px 6px;
+  padding:6px 7px;
   border:1px solid var(--line);
-  border-radius:6px;
+  border-radius:8px;
   background:var(--bg-soft);
 }
 .custom-fields input::placeholder{color:#A8A8A8;}
 
 .add-btn{
   margin-top:8px;
-  border:1px dashed var(--ink);
-  color:var(--ink);
-  background:transparent;
-  padding:6px 12px;
+  border:none;
+  color:var(--blue-text);
+  background:var(--blue-soft);
+  padding:8px 14px;
   font-size:12px;
-  border-radius:8px;
+  font-weight:600;
+  border-radius:999px;
   cursor:pointer;
   font-family:var(--sans);
 }
-.add-btn:hover{background:var(--ink);color:#fff;border-style:solid;}
+.add-btn:hover{background:var(--blue);color:#fff;}
 
-/* ---------- Painel resumo estilo rótulo nutricional ---------- */
-.label-panel{
+/* ---------- Painel resumo — cards KPI ---------- */
+.summary-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  margin-bottom:10px;
+}
+.summary-head h3{
+  font-family:var(--sans);
+  font-weight:700;
+  font-size:16px;
+  margin:0;
+}
+.summary-head .date-label{
+  font-family:var(--sans);
+  font-size:12px;
+  color:var(--ink-soft);
+}
+.kpi-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:16px;
+}
+.kpi-card{
   background:var(--surface);
-  border:3px solid var(--ink);
-  border-radius:2px;
-  padding:0;
+  box-shadow:var(--shadow);
+  border-radius:var(--radius-md);
+  border-left:4px solid var(--ink-soft);
+  padding:12px 14px;
+}
+.kpi-card .kpi-label{
+  font-size:11px;
+  color:var(--ink-soft);
+  margin-bottom:2px;
+}
+.kpi-card .kpi-value{
+  font-size:22px;
+  font-weight:700;
+  line-height:1.2;
+}
+.kpi-card .kpi-value span{font-size:12px;font-weight:500;color:var(--ink-soft);}
+.kpi-ok{border-left-color:var(--green);}
+.kpi-low{border-left-color:var(--amber);}
+.kpi-high{border-left-color:var(--red);}
+
+.target-panel{
+  background:var(--surface);
+  box-shadow:var(--shadow);
+  border-radius:var(--radius-lg);
+  padding:16px 16px 14px;
   position:sticky;
   top:16px;
 }
-.label-panel .lp-head{
-  padding:10px 14px;
-  border-bottom:8px solid var(--ink);
-}
-.label-panel .lp-head h3{
-  font-family:var(--sans);
-  font-weight:700;
-  font-size:18px;
-  margin:0;
-}
-.label-panel .lp-head .date-label{
-  font-family:var(--mono);
-  font-size:11px;
-  color:var(--ink-soft);
-}
-.lp-row{
-  display:flex;
-  justify-content:space-between;
-  padding:8px 14px;
-  border-bottom:1px solid var(--ink);
-  font-size:14px;
-}
-.lp-row.total{
-  border-bottom:4px solid var(--ink);
-  font-weight:700;
-  font-size:16px;
-}
-.lp-row .val{
-  font-family:var(--mono);
-}
-
-.target-block{padding:12px 14px 16px;}
-.target{margin-bottom:12px;}
+.target{margin-bottom:14px;}
+.target:last-child{margin-bottom:0;}
 .target-label{
   display:flex;
   justify-content:space-between;
-  font-size:11px;
-  font-family:var(--mono);
+  font-size:12px;
   color:var(--ink-soft);
-  margin-bottom:4px;
+  margin-bottom:5px;
 }
 .bar-track{
   position:relative;
   height:10px;
   background:var(--bg-soft);
-  border-radius:6px;
+  border-radius:999px;
   overflow:hidden;
-  border:1px solid var(--line);
 }
 .bar-zone{
   position:absolute;
   top:0;bottom:0;
-  background:repeating-linear-gradient(45deg, #EDEDED 0 4px, #F7F7F7 4px 8px);
+  background:var(--green-soft);
 }
 .bar-fill{
   position:absolute;
   top:0;bottom:0;left:0;
-  border-radius:6px 0 0 6px;
+  border-radius:999px;
   transition:width .3s ease;
 }
 .bar-marker{
@@ -344,29 +378,31 @@ header p{
 }
 .status-chip{
   display:inline-block;
-  font-family:var(--mono);
-  font-size:10px;
-  padding:2px 8px;
-  border-radius:20px;
-  margin-top:4px;
+  font-family:var(--sans);
+  font-weight:600;
+  font-size:11px;
+  padding:3px 10px;
+  border-radius:999px;
+  margin-top:5px;
 }
-.chip-ok{background:var(--ink);color:#fff;}
-.chip-low{background:transparent;color:var(--ink);border:1px dashed var(--ink);}
-.chip-high{background:var(--fill-mid);color:#fff;}
+.chip-ok{background:var(--green-soft);color:var(--green-text);}
+.chip-low{background:var(--amber-soft);color:var(--amber-text);}
+.chip-high{background:var(--red-soft);color:var(--red-text);}
 
 .footnote{
   font-size:11px;
   color:var(--ink-soft);
-  padding:0 14px 14px;
+  padding-top:12px;
   line-height:1.5;
 }
 
 .history{
   margin-top:18px;
   background:var(--surface);
-  border:1px solid var(--line);
-  border-radius:12px;
-  padding:14px 16px;
+  border:none;
+  box-shadow:var(--shadow);
+  border-radius:var(--radius-lg);
+  padding:16px 16px 14px;
 }
 .history h3{
   font-family:var(--sans);
@@ -377,15 +413,63 @@ header p{
 .history table{width:100%;border-collapse:collapse;font-size:12px;}
 .history th, .history td{
   text-align:left;
-  padding:5px 4px;
+  padding:7px 6px;
   border-bottom:1px solid var(--line);
-  font-family:var(--mono);
+  font-family:var(--sans);
 }
-.history th{color:var(--ink-soft);font-weight:normal;}
+.history th{color:var(--ink-soft);font-weight:600;}
 .history tr:hover td{background:var(--bg-soft);cursor:pointer;}
 .history .empty{color:var(--ink-soft);font-family:var(--sans);font-size:12px;}
 
+/* ---------- Água ---------- */
+.water-card{
+  background:var(--surface);
+  box-shadow:var(--shadow);
+  border-radius:var(--radius-lg);
+  padding:18px 18px 16px;
+  margin-bottom:16px;
+  border-left:4px solid var(--blue);
+}
+.water-card h2{
+  font-size:16px;font-weight:700;margin:0 0 10px;
+  display:flex;justify-content:space-between;align-items:baseline;
+}
+.water-card h2 small{
+  font-size:12px;font-weight:600;color:var(--blue-text);
+  background:var(--blue-soft);padding:3px 9px;border-radius:999px;
+}
+.water-quick{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.water-quick button{
+  border:none;background:var(--blue-soft);color:var(--blue-text);
+  font-weight:600;font-size:13px;padding:8px 14px;border-radius:999px;cursor:pointer;
+}
+.water-quick button:hover{background:var(--blue);color:#fff;}
+.water-custom{display:flex;gap:8px;margin-bottom:12px;}
+.water-custom input{
+  flex:1;font-family:var(--sans);font-size:13px;padding:8px 10px;
+  border:1px solid var(--line);border-radius:9px;background:var(--bg-soft);
+}
+.water-custom button{
+  border:none;background:var(--ink);color:#fff;font-weight:600;
+  padding:8px 16px;border-radius:9px;cursor:pointer;font-size:13px;
+}
+.water-log-list{max-height:110px;overflow-y:auto;margin-top:6px;}
+.water-log-row{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:12px;color:var(--ink-soft);padding:5px 0;border-bottom:1px solid var(--line);
+}
+.water-log-row:last-child{border-bottom:none;}
+.water-log-row .rm{
+  border:none;background:var(--red-soft);color:var(--red-text);
+  width:20px;height:20px;border-radius:999px;font-size:13px;line-height:20px;cursor:pointer;
+}
+
 .export-bar{display:flex;gap:10px;justify-content:center;margin-top:22px;flex-wrap:wrap;}
+.export-bar button{
+  border:none;background:var(--surface);box-shadow:var(--shadow);color:var(--ink);
+  font-weight:600;font-size:12px;padding:9px 16px;border-radius:999px;cursor:pointer;
+}
+.export-bar button:hover{background:var(--ink);color:#fff;}
 .reset-link{
   display:block;
   text-align:center;
@@ -434,11 +518,31 @@ header p{
       <span class="savestate" id="saveState"></span>
     </div>
 
+    <div class="water-card">
+      <h2>Água <small id="waterHeaderTotal">0 ml</small></h2>
+      <div class="water-quick">
+        <button data-water="200">+200ml (copo)</button>
+        <button data-water="300">+300ml</button>
+        <button data-water="500">+500ml (garrafinha)</button>
+      </div>
+      <div class="water-custom">
+        <input type="number" id="waterCustomMl" placeholder="quantidade personalizada (ml)">
+        <button id="waterCustomAdd">adicionar</button>
+      </div>
+      <div class="target">
+        <div class="target-label"><span>Meta do dia (3.500 ml)</span><span id="waterLabelVal">0 ml</span></div>
+        <div class="bar-track"><div class="bar-fill" id="waterBarFill" style="width:0%;background:var(--blue);"></div></div>
+      </div>
+      <div class="water-log-list" id="waterLogList"></div>
+    </div>
+
     <div class="grid">
       <div id="meals"></div>
 
       <div>
-        <div class="label-panel" id="labelPanel"></div>
+        <div class="summary-head"><h3>Resumo do dia</h3><span class="date-label" id="summaryDateLabel"></span></div>
+        <div class="kpi-grid" id="kpiGrid"></div>
+        <div class="target-panel" id="targetPanel"></div>
         <div class="history">
           <h3>Últimos dias</h3>
           <div id="historyBody"><span class="empty">Carregando…</span></div>
@@ -504,7 +608,10 @@ const MEALS = [
   {key:'almoco', label:'Almoço'},
   {key:'lanche', label:'Lanche da tarde'},
   {key:'jantar', label:'Jantar'},
+  {key:'extra', label:'Refeições extras / beliscos'},
 ];
+
+const WATER_TARGET_ML = 3500;
 
 const TARGET_KCAL_MIN = 1600, TARGET_KCAL_MAX = 1800, TARGET_PROT = 140;
 const SCALE_KCAL_MAX = 2400, SCALE_PROT_MAX = 240;
@@ -512,6 +619,7 @@ const SCALE_KCAL_MAX = 2400, SCALE_PROT_MAX = 240;
 let currentDate = todayStr();
 let dayData = emptyDay();
 let saveTimer = null;
+let waterEntries = []; // [{id, ml, created_at}] do dia atual
 
 function todayStr(){
   const d = new Date();
@@ -658,45 +766,57 @@ function updateMealHeader(mealKey){
 
 function renderSummary(){
   const t = dayTotals();
-  const panel = document.getElementById('labelPanel');
+  document.getElementById('summaryDateLabel').textContent = currentDate;
+
   const kcalStatus = t.kcal < TARGET_KCAL_MIN ? 'low' : (t.kcal > TARGET_KCAL_MAX ? 'high' : 'ok');
   const protStatus = t.prot >= TARGET_PROT ? 'ok' : 'low';
 
-  panel.innerHTML = `
-    <div class="lp-head">
-      <h3>Informação do dia</h3>
-      <div class="date-label">${currentDate}</div>
+  const kpiGrid = document.getElementById('kpiGrid');
+  kpiGrid.innerHTML = `
+    <div class="kpi-card kpi-${kcalStatus}">
+      <div class="kpi-label">Calorias</div>
+      <div class="kpi-value">${Math.round(t.kcal)} <span>kcal</span></div>
     </div>
-    <div class="lp-row total"><span>Valor energético</span><span class="val">${Math.round(t.kcal)} kcal</span></div>
-    <div class="lp-row"><span>Carboidratos</span><span class="val">${t.carb.toFixed(1)} g</span></div>
-    <div class="lp-row"><span>Proteínas</span><span class="val">${t.prot.toFixed(1)} g</span></div>
-    <div class="lp-row"><span>Gorduras saturadas</span><span class="val">${t.sat.toFixed(1)} g</span></div>
-    <div class="target-block">
-      <div class="target">
-        <div class="target-label"><span>Calorias vs. faixa-alvo (1.600–1.800 kcal)</span><span>${Math.round(t.kcal)}</span></div>
-        <div class="bar-track">
-          <div class="bar-zone" style="left:${pct(TARGET_KCAL_MIN,SCALE_KCAL_MAX)}%;width:${pct(TARGET_KCAL_MAX-TARGET_KCAL_MIN,SCALE_KCAL_MAX)}%;"></div>
-          <div class="bar-fill" style="width:${pct(Math.min(t.kcal,SCALE_KCAL_MAX),SCALE_KCAL_MAX)}%;background:${barColor(kcalStatus)};"></div>
-        </div>
-        <span class="status-chip chip-${kcalStatus}">${kcalStatus==='ok'?'dentro da faixa':kcalStatus==='low'?'↓ abaixo do piso':'↑ acima do teto'}</span>
+    <div class="kpi-card kpi-${protStatus}">
+      <div class="kpi-label">Proteínas</div>
+      <div class="kpi-value">${t.prot.toFixed(1)} <span>g</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Carboidratos</div>
+      <div class="kpi-value">${t.carb.toFixed(1)} <span>g</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Gordura saturada</div>
+      <div class="kpi-value">${t.sat.toFixed(1)} <span>g</span></div>
+    </div>
+  `;
+
+  const panel = document.getElementById('targetPanel');
+  panel.innerHTML = `
+    <div class="target">
+      <div class="target-label"><span>Calorias vs. faixa-alvo (1.600–1.800 kcal)</span><span>${Math.round(t.kcal)}</span></div>
+      <div class="bar-track">
+        <div class="bar-zone" style="left:${pct(TARGET_KCAL_MIN,SCALE_KCAL_MAX)}%;width:${pct(TARGET_KCAL_MAX-TARGET_KCAL_MIN,SCALE_KCAL_MAX)}%;"></div>
+        <div class="bar-fill" style="width:${pct(Math.min(t.kcal,SCALE_KCAL_MAX),SCALE_KCAL_MAX)}%;background:${barColor(kcalStatus)};"></div>
       </div>
-      <div class="target">
-        <div class="target-label"><span>Proteína vs. meta (≥140 g)</span><span>${t.prot.toFixed(1)}</span></div>
-        <div class="bar-track">
-          <div class="bar-marker" style="left:${pct(TARGET_PROT,SCALE_PROT_MAX)}%;"></div>
-          <div class="bar-fill" style="width:${pct(Math.min(t.prot,SCALE_PROT_MAX),SCALE_PROT_MAX)}%;background:${barColor(protStatus)};"></div>
-        </div>
-        <span class="status-chip chip-${protStatus}">${protStatus==='ok'?'✓ meta batida':'↓ faltam '+(TARGET_PROT-t.prot).toFixed(1)+'g'}</span>
+      <span class="status-chip chip-${kcalStatus}">${kcalStatus==='ok'?'✓ dentro da faixa':kcalStatus==='low'?'↓ abaixo do piso':'↑ acima do teto'}</span>
+    </div>
+    <div class="target">
+      <div class="target-label"><span>Proteína vs. meta (≥140 g)</span><span>${t.prot.toFixed(1)}</span></div>
+      <div class="bar-track">
+        <div class="bar-marker" style="left:${pct(TARGET_PROT,SCALE_PROT_MAX)}%;"></div>
+        <div class="bar-fill" style="width:${pct(Math.min(t.prot,SCALE_PROT_MAX),SCALE_PROT_MAX)}%;background:${barColor(protStatus)};"></div>
       </div>
+      <span class="status-chip chip-${protStatus}">${protStatus==='ok'?'✓ meta batida':'↓ faltam '+(TARGET_PROT-t.prot).toFixed(1)+'g'}</span>
     </div>
     <div class="footnote">Faixa de referência baseada no acompanhamento médico/nutricional já discutido. Ferramenta de acompanhamento pessoal — não substitui orientação profissional.</div>
   `;
 }
 function pct(v,scale){return Math.max(0,Math.min(100,(v/scale)*100));}
 function barColor(status){
-  if(status==='ok') return 'var(--ink)';
-  if(status==='low') return 'var(--fill-light)';
-  return 'var(--fill-mid)';
+  if(status==='ok') return 'var(--green)';
+  if(status==='low') return 'var(--amber)';
+  return 'var(--red)';
 }
 
 /* ---------- Persistência via Supabase ---------- */
@@ -756,22 +876,30 @@ async function saveDay(){
 async function loadHistory(){
   const body = document.getElementById('historyBody');
   try{
-    const { data, error } = await sb.from('diary_entries')
-      .select('entry_date, kcal, prot')
-      .order('entry_date', {ascending:false})
-      .limit(1000);
-    if(error) throw error;
+    const [foodRes, waterRes] = await Promise.all([
+      sb.from('diary_entries').select('entry_date, kcal, prot').order('entry_date', {ascending:false}).limit(1000),
+      sb.from('water_log').select('entry_date, ml').order('entry_date', {ascending:false}).limit(1000),
+    ]);
+    if(foodRes.error) throw foodRes.error;
+    if(waterRes.error) throw waterRes.error;
+
     const byDate = {};
-    (data||[]).forEach(r=>{
+    (foodRes.data||[]).forEach(r=>{
       const k = r.entry_date;
-      if(!byDate[k]) byDate[k] = {kcal:0, prot:0};
+      if(!byDate[k]) byDate[k] = {kcal:0, prot:0, water:0};
       byDate[k].kcal += Number(r.kcal);
       byDate[k].prot += Number(r.prot);
     });
+    (waterRes.data||[]).forEach(r=>{
+      const k = r.entry_date;
+      if(!byDate[k]) byDate[k] = {kcal:0, prot:0, water:0};
+      byDate[k].water += Number(r.ml);
+    });
+
     const dates = Object.keys(byDate).sort().reverse().slice(0,10);
     if(dates.length===0){ body.innerHTML = '<span class="empty">Nenhum dia salvo ainda.</span>'; return; }
-    body.innerHTML = `<table><thead><tr><th>Data</th><th>Kcal</th><th>Prot.</th></tr></thead>
-      <tbody>${dates.map(d=>`<tr data-jump="${d}"><td>${d}</td><td>${Math.round(byDate[d].kcal)}</td><td>${byDate[d].prot.toFixed(1)}g</td></tr>`).join('')}</tbody></table>`;
+    body.innerHTML = `<table><thead><tr><th>Data</th><th>Kcal</th><th>Prot.</th><th>Água</th></tr></thead>
+      <tbody>${dates.map(d=>`<tr data-jump="${d}"><td>${d}</td><td>${Math.round(byDate[d].kcal)}</td><td>${byDate[d].prot.toFixed(1)}g</td><td>${(byDate[d].water/1000).toFixed(1)}L</td></tr>`).join('')}</tbody></table>`;
     body.querySelectorAll('[data-jump]').forEach(tr=>{
       tr.addEventListener('click',()=>{
         const d = tr.getAttribute('data-jump');
@@ -785,11 +913,70 @@ async function loadHistory(){
   }
 }
 
+/* ---------- Água ---------- */
+async function loadWater(date){
+  waterEntries = [];
+  try{
+    const { data, error } = await sb.from('water_log').select('*').eq('entry_date', date).order('created_at',{ascending:true});
+    if(error) throw error;
+    waterEntries = data||[];
+  }catch(e){ console.error(e); }
+  renderWater();
+}
+
+function renderWater(){
+  const total = waterEntries.reduce((s,e)=>s+Number(e.ml),0);
+  document.getElementById('waterHeaderTotal').textContent = `${Math.round(total)} ml`;
+  document.getElementById('waterLabelVal').textContent = `${Math.round(total)} / ${WATER_TARGET_ML} ml`;
+  const fill = document.getElementById('waterBarFill');
+  fill.style.width = pct(Math.min(total,WATER_TARGET_ML), WATER_TARGET_ML)+'%';
+  fill.style.background = total>=WATER_TARGET_ML ? 'var(--green)' : 'var(--blue)';
+
+  const list = document.getElementById('waterLogList');
+  if(waterEntries.length===0){
+    list.innerHTML = '<span class="empty" style="font-size:12px;color:var(--ink-soft);">Nenhum registro ainda hoje.</span>';
+    return;
+  }
+  list.innerHTML = waterEntries.map(e=>{
+    const time = new Date(e.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="water-log-row"><span>${time} — ${Math.round(Number(e.ml))} ml</span><button class="rm" data-waterrm="${e.id}">×</button></div>`;
+  }).join('');
+  list.querySelectorAll('[data-waterrm]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id = btn.getAttribute('data-waterrm');
+      try{
+        await sb.from('water_log').delete().eq('id', id);
+        await loadWater(currentDate);
+        loadHistory();
+      }catch(e){ console.error(e); }
+    });
+  });
+}
+
+async function addWater(ml){
+  if(!ml || ml<=0) return;
+  try{
+    await sb.from('water_log').insert({entry_date: currentDate, ml});
+    await loadWater(currentDate);
+    loadHistory();
+  }catch(e){ console.error(e); }
+}
+
+document.querySelectorAll('[data-water]').forEach(btn=>{
+  btn.addEventListener('click',()=>addWater(parseFloat(btn.getAttribute('data-water'))));
+});
+document.getElementById('waterCustomAdd').addEventListener('click',()=>{
+  const input = document.getElementById('waterCustomMl');
+  addWater(parseFloat(input.value)||0);
+  input.value = '';
+});
+
 /* ---------- Navegação de data ---------- */
 function setCurrentDate(dateStr){
   currentDate = dateStr;
   document.getElementById('dateInput').value = dateStr;
   loadDay(dateStr);
+  loadWater(dateStr);
 }
 function shiftDay(delta){
   const d = new Date(currentDate+'T00:00:00');
@@ -804,20 +991,30 @@ async function fetchAllRows(){
   return data||[];
 }
 
+async function fetchAllWater(){
+  const { data, error } = await sb.from('water_log').select('*').order('entry_date',{ascending:true});
+  if(error) throw error;
+  return data||[];
+}
+
 document.getElementById('exportSummary').addEventListener('click', async ()=>{
   try{
-    const rows = await fetchAllRows();
-    if(rows.length===0){ alert('Nenhum dia salvo ainda para exportar.'); return; }
+    const [rows, waterRows] = await Promise.all([fetchAllRows(), fetchAllWater()]);
+    if(rows.length===0 && waterRows.length===0){ alert('Nenhum dia salvo ainda para exportar.'); return; }
     const byDate = {};
     rows.forEach(r=>{
-      if(!byDate[r.entry_date]) byDate[r.entry_date]={kcal:0,carb:0,prot:0,sat:0};
+      if(!byDate[r.entry_date]) byDate[r.entry_date]={kcal:0,carb:0,prot:0,sat:0,water:0};
       byDate[r.entry_date].kcal+=Number(r.kcal); byDate[r.entry_date].carb+=Number(r.carb);
       byDate[r.entry_date].prot+=Number(r.prot); byDate[r.entry_date].sat+=Number(r.sat);
     });
-    const header = 'data,kcal,carboidratos_g,proteinas_g,gordura_saturada_g\n';
+    waterRows.forEach(r=>{
+      if(!byDate[r.entry_date]) byDate[r.entry_date]={kcal:0,carb:0,prot:0,sat:0,water:0};
+      byDate[r.entry_date].water+=Number(r.ml);
+    });
+    const header = 'data,kcal,carboidratos_g,proteinas_g,gordura_saturada_g,agua_ml\n';
     const lines = Object.keys(byDate).sort().map(d=>{
       const t = byDate[d];
-      return `${d},${t.kcal.toFixed(1)},${t.carb.toFixed(1)},${t.prot.toFixed(1)},${t.sat.toFixed(1)}`;
+      return `${d},${t.kcal.toFixed(1)},${t.carb.toFixed(1)},${t.prot.toFixed(1)},${t.sat.toFixed(1)},${t.water.toFixed(0)}`;
     });
     downloadFile('diario_alimentar_resumo.csv', header+lines.join('\n'), 'text/csv');
   }catch(e){ alert('Erro ao exportar: '+e.message); }
@@ -825,9 +1022,9 @@ document.getElementById('exportSummary').addEventListener('click', async ()=>{
 
 document.getElementById('exportDetailed').addEventListener('click', async ()=>{
   try{
-    const rows = await fetchAllRows();
-    if(rows.length===0){ alert('Nenhum dia salvo ainda para exportar.'); return; }
-    downloadFile('diario_alimentar_detalhado.json', JSON.stringify(rows,null,2), 'application/json');
+    const [rows, waterRows] = await Promise.all([fetchAllRows(), fetchAllWater()]);
+    if(rows.length===0 && waterRows.length===0){ alert('Nenhum dia salvo ainda para exportar.'); return; }
+    downloadFile('diario_alimentar_detalhado.json', JSON.stringify({refeicoes:rows, agua:waterRows},null,2), 'application/json');
   }catch(e){ alert('Erro ao exportar: '+e.message); }
 });
 
@@ -852,6 +1049,7 @@ function showApp(email){
   document.getElementById('userEmail').textContent = email||'';
   document.getElementById('dateInput').value = currentDate;
   loadDay(currentDate);
+  loadWater(currentDate);
   loadHistory();
 }
 function showAuthGate(){
