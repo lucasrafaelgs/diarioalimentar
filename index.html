@@ -452,6 +452,11 @@ header p{
   border:none;background:var(--ink);color:#fff;font-weight:600;
   padding:8px 16px;border-radius:9px;cursor:pointer;font-size:13px;
 }
+.water-log-toggle{
+  font-size:12px;color:var(--blue-text);cursor:pointer;
+  margin-top:10px;user-select:none;font-weight:600;
+}
+.water-log-toggle:hover{text-decoration:underline;}
 .water-log-list{max-height:110px;overflow-y:auto;margin-top:6px;}
 .water-log-row{
   display:flex;justify-content:space-between;align-items:center;
@@ -462,6 +467,58 @@ header p{
   border:none;background:var(--red-soft);color:var(--red-text);
   width:20px;height:20px;border-radius:999px;font-size:13px;line-height:20px;cursor:pointer;
 }
+
+.foods-manager{
+  margin-top:18px;
+  background:var(--surface);
+  box-shadow:var(--shadow);
+  border-radius:var(--radius-lg);
+  padding:16px 16px 14px;
+}
+.foods-manager-head{cursor:pointer;user-select:none;}
+.foods-manager-head h3{
+  font-family:var(--sans);font-weight:700;font-size:15px;margin:0;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.food-form{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  background:var(--bg-soft);border-radius:var(--radius-md);
+  padding:14px;margin:10px 0;
+}
+.food-form input, .food-form select{
+  font-family:var(--sans);font-size:13px;padding:8px 9px;
+  border:1px solid var(--line);border-radius:8px;background:var(--surface);
+}
+.food-form .full{grid-column:1 / -1;}
+.food-form-actions{grid-column:1 / -1;display:flex;gap:8px;justify-content:flex-end;margin-top:4px;}
+.food-form-actions button{
+  border:none;font-weight:600;font-size:13px;padding:8px 16px;
+  border-radius:999px;cursor:pointer;
+}
+.ff-save{background:var(--ink);color:#fff;}
+.ff-cancel{background:var(--bg-soft);color:var(--ink-soft);}
+.foods-list-cat{
+  font-size:11px;font-weight:700;color:var(--ink-soft);
+  text-transform:uppercase;letter-spacing:.03em;
+  margin:14px 0 4px;
+}
+.foods-list-cat:first-child{margin-top:10px;}
+.food-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;
+}
+.food-row:last-child{border-bottom:none;}
+.food-row .fname{flex:1;}
+.food-row .funit{color:var(--ink-soft);font-size:11px;margin-left:6px;}
+.food-row .factions{display:flex;gap:6px;}
+.food-row .factions button{
+  border:none;font-size:11px;font-weight:600;padding:5px 10px;
+  border-radius:999px;cursor:pointer;
+}
+.fedit{background:var(--blue-soft);color:var(--blue-text);}
+.fedit:hover{background:var(--blue);color:#fff;}
+.fdel{background:var(--red-soft);color:var(--red-text);}
+.fdel:hover{background:var(--red);color:#fff;}
 
 .export-bar{display:flex;gap:10px;justify-content:center;margin-top:22px;flex-wrap:wrap;}
 .export-bar button{
@@ -501,7 +558,7 @@ header p{
     <header>
       <div>
         <h1>Diário Alimentar</h1>
-        <p>Roteiro alimentar · macros calculados com base nas tabelas já checadas</p>
+        <p>Ferramenta de acompanhamento de rotina alimentar.</p>
       </div>
       <div class="session-bar">
         <span id="userEmail"></span>
@@ -529,10 +586,11 @@ header p{
         <button id="waterCustomAdd">adicionar</button>
       </div>
       <div class="target">
-        <div class="target-label"><span>Meta do dia (3.500 ml)</span><span id="waterLabelVal">0 ml</span></div>
+        <div class="target-label"><span>Meta do dia (3.000 ml)</span><span id="waterLabelVal">0 ml</span></div>
         <div class="bar-track"><div class="bar-fill" id="waterBarFill" style="width:0%;background:var(--blue);"></div></div>
       </div>
-      <div class="water-log-list" id="waterLogList"></div>
+      <div class="water-log-toggle" id="waterLogToggle">Ver registros de hoje <span id="waterLogCount">(0)</span> <span id="waterLogChevron">▸</span></div>
+      <div class="water-log-list" id="waterLogList" style="display:none;"></div>
     </div>
 
     <div class="grid">
@@ -546,6 +604,17 @@ header p{
           <h3>Últimos dias</h3>
           <div id="historyBody"><span class="empty">Carregando…</span></div>
         </div>
+      </div>
+    </div>
+
+    <div class="foods-manager">
+      <div class="foods-manager-head" id="foodsManagerToggle">
+        <h3>Gerenciar alimentos cadastrados <span id="foodsManagerChevron">▸</span></h3>
+      </div>
+      <div id="foodsManagerBody" style="display:none;">
+        <button class="add-btn" id="newFoodBtn">+ novo alimento</button>
+        <div id="foodFormWrap"></div>
+        <div id="foodsList"></div>
       </div>
     </div>
 
@@ -568,39 +637,166 @@ const SUPABASE_ANON_KEY = 'sb_publishable_V8EpqC-JVbwi6aTLX-l-mQ_AcrVFxOF';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-/* ---------- Base de alimentos (mesmos dados da tabela food_items) ---------- */
-const FOOD_DB = [
-  {id:'camarao', cat:'Proteínas', name:'Camarão cozido', unit:'g', base:100, kcal:90, carb:0, prot:19, sat:0.3, dq:120},
-  {id:'patinho', cat:'Proteínas', name:'Patinho moído/grelhado', unit:'g', base:100, kcal:219, carb:0, prot:35.9, sat:2.9, dq:100},
-  {id:'coxao', cat:'Proteínas', name:'Coxão mole moído/cozido', unit:'g', base:100, kcal:219, carb:0, prot:32.4, sat:3.5, dq:100},
-  {id:'frango_sadia', cat:'Proteínas', name:'Frango desfiado (Sadia Na Receita)', unit:'g', base:100, kcal:108, carb:0.6, prot:22, sat:0.7, dq:100},
-  {id:'tilapia', cat:'Proteínas', name:'Filé de tilápia grelhado', unit:'g', base:100, kcal:128, carb:0, prot:26.2, sat:0.9, dq:120},
-  {id:'ovo_cozido', cat:'Proteínas', name:'Ovo cozido', unit:'g', base:100, kcal:146, carb:0.6, prot:13.3, sat:3.1, dq:150},
-  {id:'ovo_mexido', cat:'Proteínas', name:'Ovo mexido', unit:'g', base:100, kcal:193, carb:0.9, prot:14.45, sat:3.5, dq:100},
-  {id:'arroz', cat:'Carboidratos', name:'Arroz branco cozido', unit:'g', base:100, kcal:128, carb:28.1, prot:2.5, sat:0.04, dq:80},
-  {id:'feijaoverde', cat:'Carboidratos', name:'Feijão-verde cozido', unit:'g', base:100, kcal:116, carb:20.8, prot:7.7, sat:0.1, dq:150},
-  {id:'batata', cat:'Carboidratos', name:'Batata inglesa assada s/ óleo', unit:'g', base:100, kcal:88, carb:18.8, prot:2.52, sat:0.01, dq:100},
-  {id:'macarrao', cat:'Carboidratos', name:'Macarrão (Petybon Grano Duro) cozido', unit:'g', base:100, kcal:125, carb:25, prot:5.2, sat:0, dq:80},
-  {id:'cuscuz', cat:'Carboidratos', name:'Cuscuz de milho cozido', unit:'g', base:100, kcal:113, carb:25.3, prot:2.2, sat:0, dq:120},
-  {id:'goma', cat:'Carboidratos', name:'Goma de tapioca (seca, Dona Inês)', unit:'g', base:100, kcal:330, carb:51, prot:0, sat:0, dq:50},
-  {id:'pao', cat:'Pão e queijo', name:'Pão Plusvita Fibras', unit:'fatia', base:1, kcal:60.7, carb:11.3, prot:2.6, sat:0.1, dq:2},
-  {id:'queijo', cat:'Pão e queijo', name:'Queijo coalho A2 light (Sabor&Vida)', unit:'g', base:100, kcal:257, carb:3.3, prot:27, sat:9.3, dq:30},
-  {id:'iog_sv', cat:'Iogurtes', name:'Iogurte Sabor&Vida Whey (170g)', unit:'unidade', base:1, kcal:176, carb:18, prot:12, sat:3.8, dq:1},
-  {id:'iog_vc', cat:'Iogurtes', name:'Iogurte Verde Campo Natural Whey (250g)', unit:'unidade', base:1, kcal:180, carb:21, prot:21, sat:0.8, dq:1},
-  {id:'proforce', cat:'Bebidas proteicas', name:'Piracanjuba ProForce (250ml)', unit:'unidade', base:1, kcal:174, carb:17, prot:23, sat:0.5, dq:1},
-  {id:'powerwhey', cat:'Bebidas proteicas', name:'3Corações Power Whey Chocolate (250ml)', unit:'unidade', base:1, kcal:165, carb:20, prot:15, sat:1.8, dq:1},
-  {id:'tangerina', cat:'Frutas e castanhas', name:'Tangerina', unit:'g', base:100, kcal:45, carb:11, prot:0.8, sat:0, dq:100},
-  {id:'castanha', cat:'Frutas e castanhas', name:'Castanha de caju torrada', unit:'g', base:100, kcal:570, carb:29.1, prot:18.5, sat:8, dq:15},
-  {id:'cafe', cat:'Outros', name:'Café sem açúcar (1 xícara)', unit:'unidade', base:1, kcal:2, carb:0, prot:0.3, sat:0, dq:1},
-  {id:'whey_iso', cat:'Suplementação', name:'Whey Isolado Max Titanium (30g)', unit:'scoop', base:1, kcal:110, carb:1, prot:26, sat:0, dq:1},
-  {id:'creatina', cat:'Suplementação', name:'Creatina monohidratada (5g)', unit:'scoop', base:1, kcal:0, carb:0, prot:0, sat:0, dq:1},
-  {id:'pretreino', cat:'Suplementação', name:'Pré-treino Égide (6g)', unit:'scoop', base:1, kcal:3, carb:0.8, prot:0, sat:0, dq:1},
-  {id:'crepioca', cat:'Carboidratos', name:'Crepioca', unit:'unidade', base:1, kcal:260, carb:18, prot:18, sat:5, dq:1},
-  {id:'cocazero', cat:'Bebidas', name:'Coca Zero', unit:'garrafa', base:1, kcal:0, carb:0, prot:0, sat:0, dq:1},
-  {id:'spritezero', cat:'Bebidas', name:'Sprite Zero', unit:'lata', base:1, kcal:0, carb:0, prot:0, sat:0, dq:1},
-];
-const FOOD_MAP = Object.fromEntries(FOOD_DB.map(f=>[f.id,f]));
-const CATS = [...new Set(FOOD_DB.map(f=>f.cat))];
+/* ---------- Base de alimentos — agora carregada do Postgres (tabela food_items) ---------- */
+let FOOD_DB = [];
+let FOOD_MAP = {};
+let CATS = [];
+
+async function loadFoodItems(){
+  try{
+    const { data, error } = await withTimeout(sb.from('food_items').select('*').order('category').order('name'));
+    if(error) throw error;
+    FOOD_DB = (data||[]).map(r=>({
+      id:r.id, cat:r.category, name:r.name, unit:r.unit, base:Number(r.base_qty),
+      kcal:Number(r.kcal), carb:Number(r.carb), prot:Number(r.prot), sat:Number(r.sat),
+      dq:Number(r.base_qty)
+    }));
+  }catch(e){
+    console.error(e);
+    document.getElementById('meals').innerHTML = `<div class="meal"><span class="empty" style="color:var(--red-text);">Não foi possível carregar a lista de alimentos (${e.message}). Recarregue a página.</span></div>`;
+    FOOD_DB = [];
+  }
+  FOOD_MAP = Object.fromEntries(FOOD_DB.map(f=>[f.id,f]));
+  CATS = [...new Set(FOOD_DB.map(f=>f.cat))];
+}
+
+/* ---------- Gerenciar alimentos (cadastrar / editar / remover) ---------- */
+function slugify(name){
+  const base = (name||'item').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'item';
+  let candidate = base, n = 1;
+  while(FOOD_MAP[candidate]){ candidate = base+'_'+(++n); }
+  return candidate;
+}
+
+document.getElementById('foodsManagerToggle').addEventListener('click',()=>{
+  const body = document.getElementById('foodsManagerBody');
+  const chevron = document.getElementById('foodsManagerChevron');
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  chevron.textContent = isOpen ? '▸' : '▾';
+});
+
+function renderFoodsManager(){
+  const list = document.getElementById('foodsList');
+  list.innerHTML = '';
+  CATS.forEach(cat=>{
+    const catEl = document.createElement('div');
+    catEl.className='foods-list-cat';
+    catEl.textContent = cat;
+    list.appendChild(catEl);
+    FOOD_DB.filter(f=>f.cat===cat).forEach(f=>{
+      const row = document.createElement('div');
+      row.className='food-row';
+      row.innerHTML = `
+        <span class="fname">${f.name} <span class="funit">(por ${f.base} ${f.unit})</span></span>
+        <span class="factions">
+          <button class="fedit" data-edit="${f.id}">editar</button>
+          <button class="fdel" data-del="${f.id}">remover</button>
+        </span>`;
+      list.appendChild(row);
+    });
+  });
+  list.querySelectorAll('[data-edit]').forEach(btn=>{
+    btn.addEventListener('click',()=>openFoodForm(FOOD_MAP[btn.getAttribute('data-edit')]));
+  });
+  list.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.addEventListener('click',()=>deleteFood(btn.getAttribute('data-del')));
+  });
+}
+
+document.getElementById('newFoodBtn').addEventListener('click',()=>openFoodForm(null));
+
+function openFoodForm(existing){
+  const wrap = document.getElementById('foodFormWrap');
+  const isEdit = !!existing;
+  wrap.innerHTML = `
+    <div class="food-form">
+      <input class="full" id="ffName" placeholder="Nome do alimento" value="${isEdit?existing.name:''}">
+      <input id="ffCat" list="ffCatList" placeholder="Categoria" value="${isEdit?existing.cat:''}">
+      <datalist id="ffCatList">${CATS.map(c=>`<option value="${c}">`).join('')}</datalist>
+      <input id="ffUnit" placeholder="Unidade (g, ml, unidade, fatia...)" value="${isEdit?existing.unit:'g'}">
+      <input id="ffBase" type="number" step="0.01" placeholder="Quantidade de referência" value="${isEdit?existing.base:100}">
+      <input id="ffKcal" type="number" step="0.01" placeholder="Kcal" value="${isEdit?existing.kcal:''}">
+      <input id="ffCarb" type="number" step="0.01" placeholder="Carboidratos (g)" value="${isEdit?existing.carb:''}">
+      <input id="ffProt" type="number" step="0.01" placeholder="Proteínas (g)" value="${isEdit?existing.prot:''}">
+      <input id="ffSat" type="number" step="0.01" placeholder="Gordura saturada (g)" value="${isEdit?existing.sat:''}">
+      <div class="food-form-actions">
+        <button class="ff-cancel" id="ffCancel">Cancelar</button>
+        <button class="ff-save" id="ffSave">${isEdit?'Salvar alterações':'Cadastrar'}</button>
+      </div>
+    </div>`;
+  document.getElementById('ffCancel').addEventListener('click',()=>{ wrap.innerHTML=''; });
+  document.getElementById('ffSave').addEventListener('click',()=>saveFoodForm(isEdit?existing.id:null));
+}
+
+async function saveFoodForm(existingId){
+  const name = document.getElementById('ffName').value.trim();
+  const cat = document.getElementById('ffCat').value.trim();
+  const unit = document.getElementById('ffUnit').value.trim();
+  const base = parseFloat(document.getElementById('ffBase').value);
+  const kcal = parseFloat(document.getElementById('ffKcal').value)||0;
+  const carb = parseFloat(document.getElementById('ffCarb').value)||0;
+  const prot = parseFloat(document.getElementById('ffProt').value)||0;
+  const sat = parseFloat(document.getElementById('ffSat').value)||0;
+
+  if(!name || !cat || !unit || !base || base<=0){
+    alert('Preencha nome, categoria, unidade e uma quantidade de referência válida (maior que zero).');
+    return;
+  }
+
+  const isEdit = !!existingId;
+  if(!isEdit){
+    const proceed = confirm(`Cadastrar "${name}" como novo alimento?`);
+    if(!proceed) return;
+  } else {
+    const proceed = confirm(`Salvar as alterações em "${name}"? Isso não afeta registros já salvos em dias anteriores.`);
+    if(!proceed) return;
+  }
+
+  try{
+    if(isEdit){
+      const { error } = await withTimeout(sb.from('food_items').update({
+        category:cat, name, unit, base_qty:base, kcal, carb, prot, sat
+      }).eq('id', existingId));
+      if(error) throw error;
+    } else {
+      const id = slugify(name);
+      const { error } = await withTimeout(sb.from('food_items').insert({
+        id, category:cat, name, unit, base_qty:base, kcal, carb, prot, sat
+      }));
+      if(error) throw error;
+    }
+    document.getElementById('foodFormWrap').innerHTML = '';
+    await loadFoodItems();
+    renderFoodsManager();
+    renderAll();
+  }catch(e){
+    console.error(e);
+    alert('Erro ao salvar: '+e.message);
+  }
+}
+
+async function deleteFood(id){
+  const f = FOOD_MAP[id];
+  if(!f) return;
+  const proceed = confirm(`Remover "${f.name}" da lista de alimentos? Isso não afeta registros já salvos em dias anteriores, mas o item deixará de aparecer para novos registros.`);
+  if(!proceed) return;
+  try{
+    const { error } = await withTimeout(sb.from('food_items').delete().eq('id', id));
+    if(error) throw error;
+    await loadFoodItems();
+    renderFoodsManager();
+  }catch(e){
+    console.error(e);
+    if(e.code==='23503' || /foreign key/i.test(e.message||'')){
+      alert(`"${f.name}" já foi usado em algum registro salvo em dias anteriores, então não pode ser removido (isso preserva seu histórico). Se quiser, edite o item em vez de remover.`);
+    } else {
+      alert('Erro ao remover: '+e.message);
+    }
+  }
+}
 
 const MEALS = [
   {key:'cafe', label:'Café da manhã'},
@@ -610,7 +806,7 @@ const MEALS = [
   {key:'extra', label:'Refeições extras'},
 ];
 
-const WATER_TARGET_ML = 3500;
+const WATER_TARGET_ML = 3000;
 
 const TARGET_KCAL_MIN = 1600, TARGET_KCAL_MAX = 1800, TARGET_PROT = 140;
 const SCALE_KCAL_MAX = 2400, SCALE_PROT_MAX = 240;
@@ -950,6 +1146,7 @@ function renderWater(){
   const total = waterEntries.reduce((s,e)=>s+Number(e.ml),0);
   document.getElementById('waterHeaderTotal').textContent = `${Math.round(total)} ml`;
   document.getElementById('waterLabelVal').textContent = `${Math.round(total)} / ${WATER_TARGET_ML} ml`;
+  document.getElementById('waterLogCount').textContent = `(${waterEntries.length})`;
   const fill = document.getElementById('waterBarFill');
   fill.style.width = pct(Math.min(total,WATER_TARGET_ML), WATER_TARGET_ML)+'%';
   fill.style.background = total>=WATER_TARGET_ML ? 'var(--green)' : 'var(--blue)';
@@ -987,6 +1184,13 @@ async function addWater(ml){
   }
 }
 
+document.getElementById('waterLogToggle').addEventListener('click',()=>{
+  const list = document.getElementById('waterLogList');
+  const chevron = document.getElementById('waterLogChevron');
+  const isOpen = list.style.display !== 'none';
+  list.style.display = isOpen ? 'none' : 'block';
+  chevron.textContent = isOpen ? '▸' : '▾';
+});
 document.querySelectorAll('[data-water]').forEach(btn=>{
   btn.addEventListener('click',()=>addWater(parseFloat(btn.getAttribute('data-water'))));
 });
@@ -1068,10 +1272,12 @@ async function checkSession(){
   const { data } = await sb.auth.getSession();
   if(data.session){ showApp(data.session.user.email); } else { showAuthGate(); }
 }
-function showApp(email){
+async function showApp(email){
   document.getElementById('authGate').style.display='none';
   document.getElementById('appRoot').style.display='block';
   document.getElementById('userEmail').textContent = email||'';
+  await loadFoodItems();
+  renderFoodsManager();
   document.getElementById('dateInput').value = currentDate;
   loadDay(currentDate);
   loadWater(currentDate);
