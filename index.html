@@ -300,7 +300,7 @@ header p{
 }
 .custom-fields{
   display:grid;
-  grid-template-columns:repeat(4, minmax(0, 1fr));
+  grid-template-columns:repeat(5, minmax(0, 1fr));
   gap:6px;
   margin:4px 0 8px;
 }
@@ -423,6 +423,16 @@ header p{
   gap:8px;
   flex-wrap:wrap;
   margin-top:14px;
+}
+.db-note{
+  display:none;
+  margin:12px 0 0;
+  padding:10px 12px;
+  border-radius:10px;
+  background:var(--amber-soft);
+  color:var(--amber-text);
+  font-size:12px;
+  line-height:1.4;
 }
 .target{margin-bottom:14px;}
 .target:last-child{margin-bottom:0;}
@@ -770,11 +780,16 @@ header p{
             <label for="goalSat">Gordura saturada (g)</label>
             <input type="number" id="goalSat" min="0" step="0.1">
           </div>
+          <div class="settings-field">
+            <label for="goalFiber">Fibras mínimas (g)</label>
+            <input type="number" id="goalFiber" min="0" step="1">
+          </div>
         </div>
         <div class="settings-actions">
           <button class="add-btn" id="resetGoalsBtn">restaurar padrão</button>
           <button class="add-btn" id="saveGoalsBtn">salvar metas</button>
         </div>
+        <div class="db-note" id="fiberDbNote">Para salvar fibras no Supabase, aplique a migration `supabase-fiber-migration.sql`.</div>
       </div>
 
       <div class="foods-manager">
@@ -806,6 +821,7 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let FOOD_DB = [];
 let FOOD_MAP = {};
 let CATS = [];
+let fiberColumns = {foodItems:false, diaryEntries:false};
 
 async function loadFoodItems(){
   try{
@@ -813,7 +829,7 @@ async function loadFoodItems(){
     if(error) throw error;
     FOOD_DB = (data||[]).map(r=>({
       id:r.id, cat:r.category, name:r.name, unit:r.unit, base:Number(r.base_qty),
-      kcal:Number(r.kcal), carb:Number(r.carb), prot:Number(r.prot), sat:Number(r.sat),
+      kcal:Number(r.kcal), carb:Number(r.carb), prot:Number(r.prot), sat:Number(r.sat), fiber:Number(r.fiber)||0,
       dq:Number(r.base_qty)
     }));
   }catch(e){
@@ -887,6 +903,7 @@ function openFoodForm(existing){
       <input id="ffCarb" type="number" step="0.01" placeholder="Carboidratos (g)" value="${isEdit?existing.carb:''}">
       <input id="ffProt" type="number" step="0.01" placeholder="Proteínas (g)" value="${isEdit?existing.prot:''}">
       <input id="ffSat" type="number" step="0.01" placeholder="Gordura saturada (g)" value="${isEdit?existing.sat:''}">
+      <input id="ffFiber" type="number" step="0.01" placeholder="Fibras (g)" value="${isEdit?existing.fiber||'':''}">
       <div class="food-form-actions">
         <button class="ff-cancel" id="ffCancel">Cancelar</button>
         <button class="ff-save" id="ffSave">${isEdit?'Salvar alterações':'Cadastrar'}</button>
@@ -905,6 +922,7 @@ async function saveFoodForm(existingId){
   const carb = parseFloat(document.getElementById('ffCarb').value)||0;
   const prot = parseFloat(document.getElementById('ffProt').value)||0;
   const sat = parseFloat(document.getElementById('ffSat').value)||0;
+  const fiber = parseFloat(document.getElementById('ffFiber').value)||0;
 
   if(!name || !cat || !unit || !base || base<=0){
     alert('Preencha nome, categoria, unidade e uma quantidade de referência válida (maior que zero).');
@@ -922,15 +940,15 @@ async function saveFoodForm(existingId){
 
   try{
     if(isEdit){
-      const { error } = await withTimeout(sb.from('food_items').update({
-        category:cat, name, unit, base_qty:base, kcal, carb, prot, sat
-      }).eq('id', existingId));
+      const payload = {category:cat, name, unit, base_qty:base, kcal, carb, prot, sat};
+      if(fiberColumns.foodItems) payload.fiber = fiber;
+      const { error } = await withTimeout(sb.from('food_items').update(payload).eq('id', existingId));
       if(error) throw error;
     } else {
       const id = slugify(name);
-      const { error } = await withTimeout(sb.from('food_items').insert({
-        id, category:cat, name, unit, base_qty:base, kcal, carb, prot, sat
-      }));
+      const payload = {id, category:cat, name, unit, base_qty:base, kcal, carb, prot, sat};
+      if(fiberColumns.foodItems) payload.fiber = fiber;
+      const { error } = await withTimeout(sb.from('food_items').insert(payload));
       if(error) throw error;
     }
     document.getElementById('foodFormWrap').innerHTML = '';
@@ -977,7 +995,8 @@ const DEFAULT_TARGETS = {
   prot:140,
   water:3000,
   carb:0,
-  sat:0
+  sat:0,
+  fiber:25
 };
 const TARGETS_STORAGE_KEY = 'diarioAlimentar.targets.v1';
 let targets = {...DEFAULT_TARGETS};
@@ -993,7 +1012,7 @@ function todayStr(){
 }
 function emptyDay(){ return MEALS.reduce((acc,m)=>{acc[m.key]=[];return acc;},{}); }
 function newItem(foodId){ const f=FOOD_MAP[foodId]; return {foodId, qty:f.dq, custom:null}; }
-function newCustomItem(){ return {foodId:'custom', custom:{name:'', kcal:0, carb:0, prot:0, sat:0}}; }
+function newCustomItem(){ return {foodId:'custom', custom:{name:'', kcal:0, carb:0, prot:0, sat:0, fiber:0}}; }
 function parseLocalDate(dateStr){
   const [year, month, day] = dateStr.split('-').map(Number);
   return new Date(year, month - 1, day, 12);
@@ -1047,6 +1066,7 @@ function hydrateGoalInputs(){
   document.getElementById('goalWater').value = targets.water;
   document.getElementById('goalCarb').value = targets.carb || '';
   document.getElementById('goalSat').value = targets.sat || '';
+  document.getElementById('goalFiber').value = targets.fiber || '';
 }
 function readGoalInputs(){
   targets = {
@@ -1055,7 +1075,8 @@ function readGoalInputs(){
     prot:parseFloat(document.getElementById('goalProtein').value) || 0,
     water:parseFloat(document.getElementById('goalWater').value) || 0,
     carb:parseFloat(document.getElementById('goalCarb').value) || 0,
-    sat:parseFloat(document.getElementById('goalSat').value) || 0
+    sat:parseFloat(document.getElementById('goalSat').value) || 0,
+    fiber:parseFloat(document.getElementById('goalFiber').value) || 0
   };
 }
 function scaleFor(value, target, fallback){
@@ -1073,25 +1094,25 @@ function pluralUnit(unit, qty){
 function computeItemValues(item){
   if(item.foodId==='custom'){
     const c = item.custom || {};
-    return {kcal:+c.kcal||0, carb:+c.carb||0, prot:+c.prot||0, sat:+c.sat||0};
+    return {kcal:+c.kcal||0, carb:+c.carb||0, prot:+c.prot||0, sat:+c.sat||0, fiber:+c.fiber||0};
   }
   const f = FOOD_MAP[item.foodId];
   const factor = (item.qty||0)/f.base;
-  return {kcal:f.kcal*factor, carb:f.carb*factor, prot:f.prot*factor, sat:f.sat*factor};
+  return {kcal:f.kcal*factor, carb:f.carb*factor, prot:f.prot*factor, sat:f.sat*factor, fiber:(f.fiber||0)*factor};
 }
 function mealTotals(mealKey){
   return dayData[mealKey].reduce((acc,item)=>{
     const v = computeItemValues(item);
-    acc.kcal+=v.kcal; acc.carb+=v.carb; acc.prot+=v.prot; acc.sat+=v.sat;
+    acc.kcal+=v.kcal; acc.carb+=v.carb; acc.prot+=v.prot; acc.sat+=v.sat; acc.fiber+=v.fiber;
     return acc;
-  },{kcal:0,carb:0,prot:0,sat:0});
+  },{kcal:0,carb:0,prot:0,sat:0,fiber:0});
 }
 function dayTotals(){
   return MEALS.reduce((acc,m)=>{
     const t = mealTotals(m.key);
-    acc.kcal+=t.kcal; acc.carb+=t.carb; acc.prot+=t.prot; acc.sat+=t.sat;
+    acc.kcal+=t.kcal; acc.carb+=t.carb; acc.prot+=t.prot; acc.sat+=t.sat; acc.fiber+=t.fiber;
     return acc;
-  },{kcal:0,carb:0,prot:0,sat:0});
+  },{kcal:0,carb:0,prot:0,sat:0,fiber:0});
 }
 function setSaveState(txt){ document.getElementById('saveState').textContent = txt; }
 
@@ -1141,6 +1162,7 @@ function renderRow(rowsEl, mealKey, item, idx){
         <input type="number" step="0.1" placeholder="carb (g)" value="${item.custom.carb||''}" data-field="carb">
         <input type="number" step="0.1" placeholder="prot (g)" value="${item.custom.prot||''}" data-field="prot">
         <input type="number" step="0.1" placeholder="sat (g)" value="${item.custom.sat||''}" data-field="sat">
+        <input type="number" step="0.1" placeholder="fibra (g)" value="${item.custom.fiber||''}" data-field="fiber">
       </div>`;
     wrap.querySelectorAll('[data-field]').forEach(inp=>{
       inp.addEventListener('input',()=>{
@@ -1214,6 +1236,7 @@ function renderSummary(){
   const protStatus = t.prot >= targets.prot ? 'ok' : 'low';
   const carbStatus = targets.carb ? (t.carb <= targets.carb ? 'ok' : 'high') : '';
   const satStatus = targets.sat ? (t.sat <= targets.sat ? 'ok' : 'high') : '';
+  const fiberStatus = t.fiber >= targets.fiber ? 'ok' : 'low';
 
   const kpiGrid = document.getElementById('kpiGrid');
   kpiGrid.innerHTML = `
@@ -1233,11 +1256,16 @@ function renderSummary(){
       <div class="kpi-label">Gordura saturada</div>
       <div class="kpi-value">${formatNumber(t.sat, 1)} <span>g</span></div>
     </div>
+    <div class="kpi-card kpi-${fiberStatus}">
+      <div class="kpi-label">Fibras</div>
+      <div class="kpi-value">${formatNumber(t.fiber, 1)} <span>g</span></div>
+    </div>
   `;
 
   const panel = document.getElementById('targetPanel');
   const kcalScale = scaleFor(t.kcal, targets.kcalMax, 2400);
   const protScale = scaleFor(t.prot, targets.prot, 240);
+  const fiberScale = scaleFor(t.fiber, targets.fiber, 60);
   const optionalTargets = [];
   if(targets.carb){
     const status = t.carb <= targets.carb ? 'ok' : 'high';
@@ -1282,6 +1310,14 @@ function renderSummary(){
       </div>
       <span class="status-chip chip-${protStatus}">${protStatus==='ok'?'✓ meta batida':'↓ faltam '+formatNumber(targets.prot-t.prot, 1)+'g'}</span>
     </div>
+    <div class="target">
+      <div class="target-label"><span>Fibras vs. meta (≥${formatNumber(targets.fiber)} g)</span><span>${formatNumber(t.fiber, 1)} g</span></div>
+      <div class="bar-track">
+        <div class="bar-marker" style="left:${pct(targets.fiber,fiberScale)}%;"></div>
+        <div class="bar-fill" style="width:${pct(Math.min(t.fiber,fiberScale),fiberScale)}%;background:${barColor(fiberStatus)};"></div>
+      </div>
+      <span class="status-chip chip-${fiberStatus}">${fiberStatus==='ok'?'✓ meta batida':'↓ faltam '+formatNumber(targets.fiber-t.fiber, 1)+'g'}</span>
+    </div>
     ${optionalTargets.join('')}
     <div class="footnote">Faixa de referência baseada no acompanhamento médico/nutricional já discutido. Ferramenta de acompanhamento pessoal — não substitui orientação profissional.</div>
   `;
@@ -1301,6 +1337,22 @@ function withTimeout(promise, ms=8000){
   ]);
 }
 
+async function detectFiberColumns(){
+  try{
+    const [foodRes, diaryRes] = await Promise.all([
+      withTimeout(sb.from('food_items').select('fiber').limit(1), 5000),
+      withTimeout(sb.from('diary_entries').select('fiber').limit(1), 5000)
+    ]);
+    fiberColumns.foodItems = !foodRes.error;
+    fiberColumns.diaryEntries = !diaryRes.error;
+  }catch(e){
+    console.warn('Não foi possível verificar colunas de fibra.', e);
+    fiberColumns = {foodItems:false, diaryEntries:false};
+  }
+  const note = document.getElementById('fiberDbNote');
+  if(note) note.style.display = (fiberColumns.foodItems && fiberColumns.diaryEntries) ? 'none' : 'block';
+}
+
 async function loadDay(date){
   setSaveState('carregando…');
   dayData = emptyDay();
@@ -1310,7 +1362,7 @@ async function loadDay(date){
     (data||[]).forEach(row=>{
       const item = row.food_id
         ? {foodId: row.food_id, qty: Number(row.qty)}
-        : {foodId:'custom', custom:{name:row.custom_name, kcal:Number(row.kcal), carb:Number(row.carb), prot:Number(row.prot), sat:Number(row.sat)}};
+        : {foodId:'custom', custom:{name:row.custom_name, kcal:Number(row.kcal), carb:Number(row.carb), prot:Number(row.prot), sat:Number(row.sat), fiber:Number(row.fiber)||0}};
       if(dayData[row.meal]) dayData[row.meal].push(item);
     });
     setSaveState('');
@@ -1335,14 +1387,16 @@ async function saveDay(){
     MEALS.forEach(m=>{
       dayData[m.key].forEach(item=>{
         const v = computeItemValues(item);
-        rows.push({
+        const row = {
           entry_date: currentDate,
           meal: m.key,
           food_id: item.foodId==='custom' ? null : item.foodId,
           custom_name: item.foodId==='custom' ? (item.custom.name||'item personalizado') : null,
           qty: item.foodId==='custom' ? 1 : item.qty,
           kcal: v.kcal, carb: v.carb, prot: v.prot, sat: v.sat
-        });
+        };
+        if(fiberColumns.diaryEntries) row.fiber = v.fiber;
+        rows.push(row);
       });
     });
     if(rows.length>0){
@@ -1361,7 +1415,7 @@ async function loadHistory(){
   const body = document.getElementById('historyBody');
   try{
     const [foodRes, waterRes] = await withTimeout(Promise.all([
-      sb.from('diary_entries').select('entry_date, kcal, prot').order('entry_date', {ascending:false}).limit(1000),
+      sb.from('diary_entries').select('*').order('entry_date', {ascending:false}).limit(1000),
       sb.from('water_log').select('entry_date, ml').order('entry_date', {ascending:false}).limit(1000),
     ]));
     if(foodRes.error) throw foodRes.error;
@@ -1370,20 +1424,21 @@ async function loadHistory(){
     const byDate = {};
     (foodRes.data||[]).forEach(r=>{
       const k = r.entry_date;
-      if(!byDate[k]) byDate[k] = {kcal:0, prot:0, water:0};
+      if(!byDate[k]) byDate[k] = {kcal:0, prot:0, fiber:0, water:0};
       byDate[k].kcal += Number(r.kcal);
       byDate[k].prot += Number(r.prot);
+      byDate[k].fiber += Number(r.fiber)||0;
     });
     (waterRes.data||[]).forEach(r=>{
       const k = r.entry_date;
-      if(!byDate[k]) byDate[k] = {kcal:0, prot:0, water:0};
+      if(!byDate[k]) byDate[k] = {kcal:0, prot:0, fiber:0, water:0};
       byDate[k].water += Number(r.ml);
     });
 
     const dates = Object.keys(byDate).sort().reverse().slice(0,10);
     if(dates.length===0){ body.innerHTML = '<span class="empty">Nenhum dia salvo ainda.</span>'; return; }
-    body.innerHTML = `<table><thead><tr><th>Data</th><th>Kcal</th><th>Prot.</th><th>Água</th></tr></thead>
-      <tbody>${dates.map(d=>`<tr data-jump="${d}"><td>${formatDateShort(d)}</td><td>${formatNumber(byDate[d].kcal)}</td><td>${formatNumber(byDate[d].prot, 1)}g</td><td>${formatNumber(byDate[d].water/1000, 1)}L</td></tr>`).join('')}</tbody></table>`;
+    body.innerHTML = `<table><thead><tr><th>Data</th><th>Kcal</th><th>Prot.</th><th>Fibra</th><th>Água</th></tr></thead>
+      <tbody>${dates.map(d=>`<tr data-jump="${d}"><td>${formatDateShort(d)}</td><td>${formatNumber(byDate[d].kcal)}</td><td>${formatNumber(byDate[d].prot, 1)}g</td><td>${formatNumber(byDate[d].fiber, 1)}g</td><td>${formatNumber(byDate[d].water/1000, 1)}L</td></tr>`).join('')}</tbody></table>`;
     body.querySelectorAll('[data-jump]').forEach(tr=>{
       tr.addEventListener('click',()=>{
         const d = tr.getAttribute('data-jump');
@@ -1535,18 +1590,19 @@ document.getElementById('exportSummary').addEventListener('click', async ()=>{
     if(rows.length===0 && waterRows.length===0){ alert('Nenhum dia salvo ainda para exportar.'); return; }
     const byDate = {};
     rows.forEach(r=>{
-      if(!byDate[r.entry_date]) byDate[r.entry_date]={kcal:0,carb:0,prot:0,sat:0,water:0};
+      if(!byDate[r.entry_date]) byDate[r.entry_date]={kcal:0,carb:0,prot:0,sat:0,fiber:0,water:0};
       byDate[r.entry_date].kcal+=Number(r.kcal); byDate[r.entry_date].carb+=Number(r.carb);
       byDate[r.entry_date].prot+=Number(r.prot); byDate[r.entry_date].sat+=Number(r.sat);
+      byDate[r.entry_date].fiber+=Number(r.fiber)||0;
     });
     waterRows.forEach(r=>{
-      if(!byDate[r.entry_date]) byDate[r.entry_date]={kcal:0,carb:0,prot:0,sat:0,water:0};
+      if(!byDate[r.entry_date]) byDate[r.entry_date]={kcal:0,carb:0,prot:0,sat:0,fiber:0,water:0};
       byDate[r.entry_date].water+=Number(r.ml);
     });
-    const header = 'data,kcal,carboidratos_g,proteinas_g,gordura_saturada_g,agua_ml\n';
+    const header = 'data,kcal,carboidratos_g,proteinas_g,gordura_saturada_g,fibras_g,agua_ml\n';
     const lines = Object.keys(byDate).sort().map(d=>{
       const t = byDate[d];
-      return `${d},${t.kcal.toFixed(1)},${t.carb.toFixed(1)},${t.prot.toFixed(1)},${t.sat.toFixed(1)},${t.water.toFixed(0)}`;
+      return `${d},${t.kcal.toFixed(1)},${t.carb.toFixed(1)},${t.prot.toFixed(1)},${t.sat.toFixed(1)},${t.fiber.toFixed(1)},${t.water.toFixed(0)}`;
     });
     downloadFile('diario_alimentar_resumo.csv', header+lines.join('\n'), 'text/csv');
   }catch(e){ alert('Erro ao exportar: '+e.message); }
@@ -1579,6 +1635,7 @@ async function showApp(email){
   document.getElementById('authGate').style.display='none';
   document.getElementById('appRoot').style.display='block';
   document.getElementById('userEmail').textContent = email||'';
+  await detectFiberColumns();
   await loadFoodItems();
   renderFoodsManager();
   document.getElementById('dateInput').value = currentDate;
