@@ -358,13 +358,17 @@ header p{
   background:var(--surface);
   box-shadow:var(--shadow);
   border-radius:var(--radius-md);
-  border-left:4px solid var(--ink-soft);
+  border-left:5px solid var(--ink-soft);
   padding:12px 14px;
 }
+.kpi-card.kpi-ok{background:var(--green-soft);}
+.kpi-card.kpi-low{background:var(--amber-soft);}
+.kpi-card.kpi-high{background:var(--red-soft);}
 .kpi-card .kpi-label{
   font-size:11px;
   color:var(--ink-soft);
   margin-bottom:2px;
+  font-weight:700;
 }
 .kpi-card .kpi-value{
   font-size:22px;
@@ -372,6 +376,14 @@ header p{
   line-height:1.2;
 }
 .kpi-card .kpi-value span{font-size:12px;font-weight:500;color:var(--ink-soft);}
+.kpi-status{
+  display:block;
+  margin-top:5px;
+  color:var(--ink);
+  font-size:11px;
+  font-weight:700;
+  line-height:1.35;
+}
 .kpi-ok{border-left-color:var(--green);}
 .kpi-low{border-left-color:var(--amber);}
 .kpi-high{border-left-color:var(--red);}
@@ -495,11 +507,29 @@ header p{
   border-radius:var(--radius-lg);
   padding:16px 16px 14px;
 }
+.history-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
 .history h3{
   font-family:var(--sans);
   font-weight:700;
   font-size:15px;
-  margin:0 0 8px;
+  margin:0;
+}
+.history-filter{
+  min-width:142px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:var(--bg-soft);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:12px;
+  font-weight:600;
+  padding:7px 8px;
 }
 .history table{width:100%;border-collapse:collapse;font-size:12px;}
 .history th, .history td{
@@ -511,6 +541,7 @@ header p{
 .history th{color:var(--ink-soft);font-weight:600;}
 .history tr:hover td{background:var(--bg-soft);cursor:pointer;}
 .history .empty{color:var(--ink-soft);font-family:var(--sans);font-size:12px;}
+.history .num{white-space:nowrap;}
 
 /* ---------- Água ---------- */
 .water-card{
@@ -665,6 +696,9 @@ header p{
   .custom-fields, .settings-grid{grid-template-columns:1fr 1fr;}
   .kpi-card{padding:11px 12px;}
   .kpi-card .kpi-value{font-size:20px;}
+  .history-head{align-items:stretch;flex-direction:column;}
+  .history-filter{width:100%;}
+  .history{overflow-x:auto;}
   .food-form{grid-template-columns:1fr;}
   .food-form-actions{justify-content:stretch;}
   .food-form-actions button{flex:1;}
@@ -738,7 +772,15 @@ header p{
           <div class="kpi-grid" id="kpiGrid"></div>
           <div class="target-panel" id="targetPanel"></div>
           <div class="history">
-            <h3>Últimos dias</h3>
+            <div class="history-head">
+              <h3>Histórico</h3>
+              <select class="history-filter" id="historyPeriod" aria-label="Período do histórico">
+                <option value="this-week">esta semana</option>
+                <option value="last-week">semana passada</option>
+                <option value="this-month">este mês</option>
+                <option value="last-month">mês passado</option>
+              </select>
+            </div>
             <div id="historyBody"><span class="empty">Carregando…</span></div>
           </div>
         </div>
@@ -1005,6 +1047,7 @@ let currentDate = todayStr();
 let dayData = emptyDay();
 let saveTimer = null;
 let waterEntries = []; // [{id, ml}] do dia atual
+let historyPeriod = 'this-week';
 
 function todayStr(){
   const d = new Date();
@@ -1035,6 +1078,69 @@ function formatNumber(v, decimals=0){
     minimumFractionDigits:decimals,
     maximumFractionDigits:decimals
   });
+}
+function toDateKey(date){
+  return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
+}
+function addDays(date, days){
+  const d = new Date(date);
+  d.setDate(d.getDate()+days);
+  return d;
+}
+function startOfWeek(date){
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate()+diff);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12);
+}
+function getHistoryRange(period=historyPeriod){
+  const today = parseLocalDate(todayStr());
+  let start, end, label, fileSuffix;
+  if(period === 'last-week'){
+    end = addDays(startOfWeek(today), -1);
+    start = addDays(end, -6);
+    label = 'semana passada';
+    fileSuffix = 'semana_passada';
+  } else if(period === 'this-month'){
+    start = new Date(today.getFullYear(), today.getMonth(), 1, 12);
+    end = new Date(today.getFullYear(), today.getMonth()+1, 0, 12);
+    label = 'este mês';
+    fileSuffix = 'este_mes';
+  } else if(period === 'last-month'){
+    start = new Date(today.getFullYear(), today.getMonth()-1, 1, 12);
+    end = new Date(today.getFullYear(), today.getMonth(), 0, 12);
+    label = 'mês passado';
+    fileSuffix = 'mes_passado';
+  } else {
+    start = startOfWeek(today);
+    end = addDays(start, 6);
+    label = 'esta semana';
+    fileSuffix = 'esta_semana';
+  }
+  return {start:toDateKey(start), end:toDateKey(end), label, fileSuffix};
+}
+function inDateRange(dateStr, range){
+  return dateStr >= range.start && dateStr <= range.end;
+}
+function emptyTotals(){
+  return {kcal:0, carb:0, prot:0, sat:0, fiber:0, water:0};
+}
+function aggregateByDate(rows, waterRows, range){
+  const byDate = {};
+  rows.filter(r=>inDateRange(r.entry_date, range)).forEach(r=>{
+    if(!byDate[r.entry_date]) byDate[r.entry_date] = emptyTotals();
+    byDate[r.entry_date].kcal += Number(r.kcal)||0;
+    byDate[r.entry_date].carb += Number(r.carb)||0;
+    byDate[r.entry_date].prot += Number(r.prot)||0;
+    byDate[r.entry_date].sat += Number(r.sat)||0;
+    byDate[r.entry_date].fiber += Number(r.fiber)||0;
+  });
+  waterRows.filter(r=>inDateRange(r.entry_date, range)).forEach(r=>{
+    if(!byDate[r.entry_date]) byDate[r.entry_date] = emptyTotals();
+    byDate[r.entry_date].water += Number(r.ml)||0;
+  });
+  return byDate;
 }
 function loadTargets(){
   try{
@@ -1228,8 +1334,35 @@ function updateMealHeader(mealKey){
   card.querySelector('h2 small').textContent = `${Math.round(t.kcal)} kcal · ${t.prot.toFixed(1)}g prot.`;
 }
 
+function kpiCard(label, value, unit, status, text){
+  const statusClass = status ? ` kpi-${status}` : '';
+  return `
+    <div class="kpi-card${statusClass}">
+      <div class="kpi-label">${label}</div>
+      <div class="kpi-value">${value} <span>${unit}</span></div>
+      <span class="kpi-status">${text}</span>
+    </div>`;
+}
+function minTargetStatus(value, target, unit, decimals=1){
+  const diff = value - target;
+  if(diff >= 0) return {status:'ok', text:`Meta batida: ${formatNumber(diff, decimals)} ${unit} acima`};
+  return {status:'low', text:`Abaixo da meta: faltam ${formatNumber(Math.abs(diff), decimals)} ${unit}`};
+}
+function maxTargetStatus(value, target, unit, decimals=1){
+  if(!target) return {status:'', text:'Sem meta definida'};
+  const diff = value - target;
+  if(diff <= 0) return {status:'ok', text:`Dentro da meta: ${formatNumber(Math.abs(diff), decimals)} ${unit} de margem`};
+  return {status:'high', text:`Acima da meta: ${formatNumber(diff, decimals)} ${unit} a mais`};
+}
+function rangeTargetStatus(value, min, max){
+  if(value < min) return {status:'low', text:`Abaixo do piso: faltam ${formatNumber(min-value)} kcal`};
+  if(value > max) return {status:'high', text:`Acima do teto: ${formatNumber(value-max)} kcal a mais`};
+  return {status:'ok', text:`Dentro da faixa: ${formatNumber(min)}-${formatNumber(max)} kcal`};
+}
+
 function renderSummary(){
   const t = dayTotals();
+  const waterTotal = waterEntries.reduce((s,e)=>s+Number(e.ml),0);
   document.getElementById('summaryDateLabel').textContent = formatDateLong(currentDate);
 
   const kcalStatus = t.kcal < targets.kcalMin ? 'low' : (t.kcal > targets.kcalMax ? 'high' : 'ok');
@@ -1237,29 +1370,21 @@ function renderSummary(){
   const carbStatus = targets.carb ? (t.carb <= targets.carb ? 'ok' : 'high') : '';
   const satStatus = targets.sat ? (t.sat <= targets.sat ? 'ok' : 'high') : '';
   const fiberStatus = t.fiber >= targets.fiber ? 'ok' : 'low';
+  const kcalKpi = rangeTargetStatus(t.kcal, targets.kcalMin, targets.kcalMax);
+  const protKpi = minTargetStatus(t.prot, targets.prot, 'g', 1);
+  const carbKpi = maxTargetStatus(t.carb, targets.carb, 'g', 1);
+  const satKpi = maxTargetStatus(t.sat, targets.sat, 'g', 1);
+  const fiberKpi = minTargetStatus(t.fiber, targets.fiber, 'g', 1);
+  const waterKpi = minTargetStatus(waterTotal, targets.water, 'ml', 0);
 
   const kpiGrid = document.getElementById('kpiGrid');
   kpiGrid.innerHTML = `
-    <div class="kpi-card kpi-${kcalStatus}">
-      <div class="kpi-label">Calorias</div>
-      <div class="kpi-value">${formatNumber(t.kcal)} <span>kcal</span></div>
-    </div>
-    <div class="kpi-card kpi-${protStatus}">
-      <div class="kpi-label">Proteínas</div>
-      <div class="kpi-value">${formatNumber(t.prot, 1)} <span>g</span></div>
-    </div>
-    <div class="kpi-card ${carbStatus ? 'kpi-'+carbStatus : ''}">
-      <div class="kpi-label">Carboidratos</div>
-      <div class="kpi-value">${formatNumber(t.carb, 1)} <span>g</span></div>
-    </div>
-    <div class="kpi-card ${satStatus ? 'kpi-'+satStatus : ''}">
-      <div class="kpi-label">Gordura saturada</div>
-      <div class="kpi-value">${formatNumber(t.sat, 1)} <span>g</span></div>
-    </div>
-    <div class="kpi-card kpi-${fiberStatus}">
-      <div class="kpi-label">Fibras</div>
-      <div class="kpi-value">${formatNumber(t.fiber, 1)} <span>g</span></div>
-    </div>
+    ${kpiCard('Calorias', formatNumber(t.kcal), 'kcal', kcalKpi.status, kcalKpi.text)}
+    ${kpiCard('Proteínas', formatNumber(t.prot, 1), 'g', protKpi.status, protKpi.text)}
+    ${kpiCard('Carboidratos', formatNumber(t.carb, 1), 'g', carbKpi.status, carbKpi.text)}
+    ${kpiCard('Gordura saturada', formatNumber(t.sat, 1), 'g', satKpi.status, satKpi.text)}
+    ${kpiCard('Fibras', formatNumber(t.fiber, 1), 'g', fiberKpi.status, fiberKpi.text)}
+    ${kpiCard('Água', formatNumber(waterTotal), 'ml', waterKpi.status, waterKpi.text)}
   `;
 
   const panel = document.getElementById('targetPanel');
@@ -1413,32 +1538,29 @@ async function saveDay(){
 
 async function loadHistory(){
   const body = document.getElementById('historyBody');
+  const range = getHistoryRange();
+  body.innerHTML = '<span class="empty">Carregando…</span>';
   try{
-    const [foodRes, waterRes] = await withTimeout(Promise.all([
-      sb.from('diary_entries').select('*').order('entry_date', {ascending:false}).limit(1000),
-      sb.from('water_log').select('entry_date, ml').order('entry_date', {ascending:false}).limit(1000),
-    ]));
-    if(foodRes.error) throw foodRes.error;
-    if(waterRes.error) throw waterRes.error;
-
-    const byDate = {};
-    (foodRes.data||[]).forEach(r=>{
-      const k = r.entry_date;
-      if(!byDate[k]) byDate[k] = {kcal:0, prot:0, fiber:0, water:0};
-      byDate[k].kcal += Number(r.kcal);
-      byDate[k].prot += Number(r.prot);
-      byDate[k].fiber += Number(r.fiber)||0;
-    });
-    (waterRes.data||[]).forEach(r=>{
-      const k = r.entry_date;
-      if(!byDate[k]) byDate[k] = {kcal:0, prot:0, fiber:0, water:0};
-      byDate[k].water += Number(r.ml);
-    });
-
-    const dates = Object.keys(byDate).sort().reverse().slice(0,10);
-    if(dates.length===0){ body.innerHTML = '<span class="empty">Nenhum dia salvo ainda.</span>'; return; }
-    body.innerHTML = `<table><thead><tr><th>Data</th><th>Kcal</th><th>Prot.</th><th>Fibra</th><th>Água</th></tr></thead>
-      <tbody>${dates.map(d=>`<tr data-jump="${d}"><td>${formatDateShort(d)}</td><td>${formatNumber(byDate[d].kcal)}</td><td>${formatNumber(byDate[d].prot, 1)}g</td><td>${formatNumber(byDate[d].fiber, 1)}g</td><td>${formatNumber(byDate[d].water/1000, 1)}L</td></tr>`).join('')}</tbody></table>`;
+    const [rows, waterRows] = await withTimeout(Promise.all([fetchAllRows(), fetchAllWater()]));
+    const byDate = aggregateByDate(rows, waterRows, range);
+    const dates = Object.keys(byDate).sort().reverse();
+    if(dates.length===0){
+      body.innerHTML = `<span class="empty">Nenhum registro em ${range.label}.</span>`;
+      return;
+    }
+    body.innerHTML = `<table><thead><tr><th>Data</th><th>Kcal</th><th>Carb.</th><th>Prot.</th><th>Sat.</th><th>Fibra</th><th>Água</th></tr></thead>
+      <tbody>${dates.map(d=>{
+        const t = byDate[d];
+        return `<tr data-jump="${d}">
+          <td>${formatDateShort(d)}</td>
+          <td class="num">${formatNumber(t.kcal)}</td>
+          <td class="num">${formatNumber(t.carb, 1)}g</td>
+          <td class="num">${formatNumber(t.prot, 1)}g</td>
+          <td class="num">${formatNumber(t.sat, 1)}g</td>
+          <td class="num">${formatNumber(t.fiber, 1)}g</td>
+          <td class="num">${formatNumber(t.water/1000, 1)}L</td>
+        </tr>`;
+      }).join('')}</tbody></table>`;
     body.querySelectorAll('[data-jump]').forEach(tr=>{
       tr.addEventListener('click',()=>{
         const d = tr.getAttribute('data-jump');
@@ -1465,6 +1587,7 @@ async function loadWater(date){
     return;
   }
   renderWater();
+  renderSummary();
 }
 
 function renderWater(){
@@ -1539,6 +1662,10 @@ function setActiveTab(tab){
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click',()=>setActiveTab(btn.getAttribute('data-tab')));
 });
+document.getElementById('historyPeriod').addEventListener('change',(e)=>{
+  historyPeriod = e.target.value;
+  loadHistory();
+});
 document.getElementById('saveGoalsBtn').addEventListener('click',()=>{
   readGoalInputs();
   saveTargets();
@@ -1586,33 +1713,32 @@ async function fetchAllWater(){
 
 document.getElementById('exportSummary').addEventListener('click', async ()=>{
   try{
+    const range = getHistoryRange();
     const [rows, waterRows] = await Promise.all([fetchAllRows(), fetchAllWater()]);
-    if(rows.length===0 && waterRows.length===0){ alert('Nenhum dia salvo ainda para exportar.'); return; }
-    const byDate = {};
-    rows.forEach(r=>{
-      if(!byDate[r.entry_date]) byDate[r.entry_date]={kcal:0,carb:0,prot:0,sat:0,fiber:0,water:0};
-      byDate[r.entry_date].kcal+=Number(r.kcal); byDate[r.entry_date].carb+=Number(r.carb);
-      byDate[r.entry_date].prot+=Number(r.prot); byDate[r.entry_date].sat+=Number(r.sat);
-      byDate[r.entry_date].fiber+=Number(r.fiber)||0;
-    });
-    waterRows.forEach(r=>{
-      if(!byDate[r.entry_date]) byDate[r.entry_date]={kcal:0,carb:0,prot:0,sat:0,fiber:0,water:0};
-      byDate[r.entry_date].water+=Number(r.ml);
-    });
+    const byDate = aggregateByDate(rows, waterRows, range);
+    if(Object.keys(byDate).length===0){ alert(`Nenhum registro em ${range.label} para exportar.`); return; }
     const header = 'data,kcal,carboidratos_g,proteinas_g,gordura_saturada_g,fibras_g,agua_ml\n';
     const lines = Object.keys(byDate).sort().map(d=>{
       const t = byDate[d];
       return `${d},${t.kcal.toFixed(1)},${t.carb.toFixed(1)},${t.prot.toFixed(1)},${t.sat.toFixed(1)},${t.fiber.toFixed(1)},${t.water.toFixed(0)}`;
     });
-    downloadFile('diario_alimentar_resumo.csv', header+lines.join('\n'), 'text/csv');
+    downloadFile(`diario_alimentar_resumo_${range.fileSuffix}.csv`, header+lines.join('\n'), 'text/csv');
   }catch(e){ alert('Erro ao exportar: '+e.message); }
 });
 
 document.getElementById('exportDetailed').addEventListener('click', async ()=>{
   try{
+    const range = getHistoryRange();
     const [rows, waterRows] = await Promise.all([fetchAllRows(), fetchAllWater()]);
-    if(rows.length===0 && waterRows.length===0){ alert('Nenhum dia salvo ainda para exportar.'); return; }
-    downloadFile('diario_alimentar_detalhado.json', JSON.stringify({refeicoes:rows, agua:waterRows},null,2), 'application/json');
+    const filteredRows = rows.filter(r=>inDateRange(r.entry_date, range));
+    const filteredWater = waterRows.filter(r=>inDateRange(r.entry_date, range));
+    if(filteredRows.length===0 && filteredWater.length===0){ alert(`Nenhum registro em ${range.label} para exportar.`); return; }
+    const payload = {
+      periodo:{nome:range.label, inicio:range.start, fim:range.end},
+      refeicoes:filteredRows,
+      agua:filteredWater
+    };
+    downloadFile(`diario_alimentar_detalhado_${range.fileSuffix}.json`, JSON.stringify(payload,null,2), 'application/json');
   }catch(e){ alert('Erro ao exportar: '+e.message); }
 });
 
