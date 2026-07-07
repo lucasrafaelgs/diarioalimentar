@@ -831,6 +831,7 @@ header p{
           <button class="add-btn" id="resetGoalsBtn">restaurar padrão</button>
           <button class="add-btn" id="saveGoalsBtn">salvar metas</button>
         </div>
+        <div class="db-note" id="targetsDbNote">Não foi possível sincronizar metas no Supabase. Verifique a tabela `user_settings` e tente salvar novamente.</div>
         <div class="db-note" id="fiberDbNote">Para salvar fibras no Supabase, aplique a migration `supabase-fiber-migration.sql`.</div>
       </div>
 
@@ -1041,6 +1042,7 @@ const DEFAULT_TARGETS = {
   fiber:25
 };
 const TARGETS_STORAGE_KEY = 'diarioAlimentar.targets.v1';
+const SETTINGS_TABLE = 'user_settings';
 let targets = {...DEFAULT_TARGETS};
 
 let currentDate = todayStr();
@@ -1142,7 +1144,7 @@ function aggregateByDate(rows, waterRows, range){
   });
   return byDate;
 }
-function loadTargets(){
+function loadLocalTargets(){
   try{
     const saved = JSON.parse(localStorage.getItem(TARGETS_STORAGE_KEY) || 'null');
     if(saved && typeof saved === 'object') targets = {...DEFAULT_TARGETS, ...saved};
@@ -1150,6 +1152,9 @@ function loadTargets(){
     targets = {...DEFAULT_TARGETS};
   }
   normalizeTargets();
+}
+function saveLocalTargets(){
+  localStorage.setItem(TARGETS_STORAGE_KEY, JSON.stringify(targets));
 }
 function normalizeTargets(){
   Object.keys(DEFAULT_TARGETS).forEach(key=>{
@@ -1161,9 +1166,53 @@ function normalizeTargets(){
   });
   if(targets.kcalMax < targets.kcalMin) targets.kcalMax = targets.kcalMin;
 }
-function saveTargets(){
+function setTargetsSyncNotice(visible){
+  const note = document.getElementById('targetsDbNote');
+  if(note) note.style.display = visible ? 'block' : 'none';
+}
+async function loadTargets(){
+  loadLocalTargets();
+  try{
+    const { data:{ user } } = await sb.auth.getUser();
+    if(!user) return;
+    const { data, error } = await withTimeout(
+      sb.from(SETTINGS_TABLE).select('targets').eq('user_id', user.id).maybeSingle(),
+      5000
+    );
+    if(error) throw error;
+    if(data && data.targets && typeof data.targets === 'object'){
+      targets = {...DEFAULT_TARGETS, ...data.targets};
+      normalizeTargets();
+      saveLocalTargets();
+    }
+    setTargetsSyncNotice(false);
+  }catch(e){
+    console.warn('Não foi possível carregar metas do Supabase. Usando metas locais.', e);
+    setTargetsSyncNotice(true);
+  }
+}
+async function saveTargets(){
   normalizeTargets();
-  localStorage.setItem(TARGETS_STORAGE_KEY, JSON.stringify(targets));
+  saveLocalTargets();
+  try{
+    const { data:{ user } } = await sb.auth.getUser();
+    if(!user) throw new Error('Usuário não autenticado.');
+    const { error } = await withTimeout(
+      sb.from(SETTINGS_TABLE).upsert({
+        user_id: user.id,
+        targets,
+        updated_at: new Date().toISOString()
+      }, { onConflict:'user_id' }),
+      5000
+    );
+    if(error) throw error;
+    setTargetsSyncNotice(false);
+    return true;
+  }catch(e){
+    console.warn('Não foi possível salvar metas no Supabase. Metas ficaram apenas neste dispositivo.', e);
+    setTargetsSyncNotice(true);
+    return false;
+  }
 }
 function hydrateGoalInputs(){
   document.getElementById('goalKcalMin').value = targets.kcalMin;
@@ -1666,22 +1715,22 @@ document.getElementById('historyPeriod').addEventListener('change',(e)=>{
   historyPeriod = e.target.value;
   loadHistory();
 });
-document.getElementById('saveGoalsBtn').addEventListener('click',()=>{
+document.getElementById('saveGoalsBtn').addEventListener('click', async ()=>{
   readGoalInputs();
-  saveTargets();
+  const synced = await saveTargets();
   hydrateGoalInputs();
   renderSummary();
   renderWater();
-  setSaveState('metas salvas');
+  setSaveState(synced ? 'metas salvas' : 'metas salvas localmente');
   setTimeout(()=>setSaveState(''), 1400);
 });
-document.getElementById('resetGoalsBtn').addEventListener('click',()=>{
+document.getElementById('resetGoalsBtn').addEventListener('click', async ()=>{
   targets = {...DEFAULT_TARGETS};
-  saveTargets();
+  const synced = await saveTargets();
   hydrateGoalInputs();
   renderSummary();
   renderWater();
-  setSaveState('metas padrão');
+  setSaveState(synced ? 'metas padrão' : 'metas padrão local');
   setTimeout(()=>setSaveState(''), 1400);
 });
 
@@ -1761,6 +1810,8 @@ async function showApp(email){
   document.getElementById('authGate').style.display='none';
   document.getElementById('appRoot').style.display='block';
   document.getElementById('userEmail').textContent = email||'';
+  await loadTargets();
+  hydrateGoalInputs();
   await detectFiberColumns();
   await loadFoodItems();
   renderFoodsManager();
@@ -1798,7 +1849,7 @@ document.getElementById('resetDay').addEventListener('click',async ()=>{
   await saveDay();
 });
 
-loadTargets();
+loadLocalTargets();
 hydrateGoalInputs();
 checkSession();
 </script>
