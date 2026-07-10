@@ -247,23 +247,27 @@ header p{
   font-family:var(--sans);
   font-weight:700;
   font-size:16px;
-  margin:0 0 10px;
-  display:flex;
-  justify-content:space-between;
-  align-items:baseline;
+  margin:0 0 8px;
 }
-.meal h2 small{
+.meal-macros{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin:0 0 10px;
+}
+.meal-macro{
   font-family:var(--sans);
-  font-size:12px;
+  font-size:11px;
   color:var(--ink-soft);
-  font-weight:600;
+  font-weight:700;
   background:var(--bg-soft);
-  padding:3px 9px;
+  padding:4px 8px;
   border-radius:999px;
+  line-height:1.2;
 }
 .item-row{
   display:grid;
-  grid-template-columns:minmax(0, 1fr) 70px 60px 26px;
+  grid-template-columns:minmax(110px, .7fr) minmax(0, 1fr) 70px 60px 26px;
   gap:8px;
   align-items:center;
   padding:7px 0;
@@ -281,6 +285,16 @@ header p{
   color:var(--ink);
   width:100%;
   min-width:0;
+}
+.item-row input[data-field="name"]{grid-column:1 / 3;}
+.item-row .food-name{
+  grid-column:1 / 3;
+  font-weight:700;
+  color:var(--ink);
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 .item-row .unit{
   font-family:var(--sans);
@@ -690,7 +704,7 @@ header p{
     padding:15px 14px;
   }
   .item-row{
-    grid-template-columns:minmax(0, 1fr) 64px 42px 26px;
+    grid-template-columns:1fr 1fr 64px 42px 26px;
     gap:6px;
   }
   .custom-fields, .settings-grid{grid-template-columns:1fr 1fr;}
@@ -1057,6 +1071,7 @@ function todayStr(){
 }
 function emptyDay(){ return MEALS.reduce((acc,m)=>{acc[m.key]=[];return acc;},{}); }
 function newItem(foodId){ const f=FOOD_MAP[foodId]; return {foodId, qty:f.dq, custom:null}; }
+function newPendingItem(){ return {foodId:'', qty:0, custom:null}; }
 function newCustomItem(){ return {foodId:'custom', custom:{name:'', kcal:0, carb:0, prot:0, sat:0, fiber:0}}; }
 function parseLocalDate(dateStr){
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -1252,6 +1267,7 @@ function computeItemValues(item){
     return {kcal:+c.kcal||0, carb:+c.carb||0, prot:+c.prot||0, sat:+c.sat||0, fiber:+c.fiber||0};
   }
   const f = FOOD_MAP[item.foodId];
+  if(!f) return {kcal:0, carb:0, prot:0, sat:0, fiber:0};
   const factor = (item.qty||0)/f.base;
   return {kcal:f.kcal*factor, carb:f.carb*factor, prot:f.prot*factor, sat:f.sat*factor, fiber:(f.fiber||0)*factor};
 }
@@ -1274,6 +1290,17 @@ function setSaveState(txt){ document.getElementById('saveState').textContent = t
 /* ---------- Render ---------- */
 function renderAll(){ renderMeals(); renderSummary(); }
 
+function mealMacrosHtml(t){
+  return `
+    <div class="meal-macros">
+      <span class="meal-macro">${formatNumber(t.kcal)} kcal</span>
+      <span class="meal-macro">Carb. ${formatNumber(t.carb, 1)}g</span>
+      <span class="meal-macro">Prot. ${formatNumber(t.prot, 1)}g</span>
+      <span class="meal-macro">Sat. ${formatNumber(t.sat, 1)}g</span>
+      <span class="meal-macro">Fibra ${formatNumber(t.fiber, 1)}g</span>
+    </div>`;
+}
+
 function renderMeals(){
   const container = document.getElementById('meals');
   container.innerHTML = '';
@@ -1281,7 +1308,8 @@ function renderMeals(){
     const card = document.createElement('div');
     card.className='meal';
     const t = mealTotals(m.key);
-    card.innerHTML = `<h2>${m.label} <small>${Math.round(t.kcal)} kcal · ${t.prot.toFixed(1)}g prot.</small></h2>
+    card.innerHTML = `<h2>${m.label}</h2>
+      ${mealMacrosHtml(t)}
       <div class="rows" data-meal="${m.key}"></div>
       <button class="add-btn" data-add="${m.key}">+ adicionar item</button>
       <button class="add-btn" data-addcustom="${m.key}" style="margin-left:6px;">+ item personalizado</button>`;
@@ -1291,8 +1319,8 @@ function renderMeals(){
   });
   container.querySelectorAll('[data-add]').forEach(btn=>{
     btn.addEventListener('click',()=>{
-      dayData[btn.getAttribute('data-add')].push(newItem(FOOD_DB[0].id));
-      renderAll(); scheduleSave();
+      dayData[btn.getAttribute('data-add')].push(newPendingItem());
+      renderAll();
     });
   });
   container.querySelectorAll('[data-addcustom]').forEach(btn=>{
@@ -1333,42 +1361,88 @@ function renderRow(rowsEl, mealKey, item, idx){
     return;
   }
 
-  const f = FOOD_MAP[item.foodId];
-  const select = document.createElement('select');
-  CATS.forEach(cat=>{
-    const og = document.createElement('optgroup'); og.label = cat;
-    FOOD_DB.filter(x=>x.cat===cat).forEach(x=>{
+  if(!item.foodId){
+    const categorySelect = document.createElement('select');
+    const categoryPlaceholder = document.createElement('option');
+    categoryPlaceholder.value = '';
+    categoryPlaceholder.textContent = 'Categoria';
+    categoryPlaceholder.disabled = true;
+    categoryPlaceholder.selected = true;
+    categorySelect.appendChild(categoryPlaceholder);
+    CATS.forEach(cat=>{
       const opt = document.createElement('option');
-      opt.value = x.id; opt.textContent = x.name;
-      if(x.id===item.foodId) opt.selected = true;
-      og.appendChild(opt);
+      opt.value = cat; opt.textContent = cat;
+      categorySelect.appendChild(opt);
     });
-    select.appendChild(og);
-  });
+
+    const foodSelect = document.createElement('select');
+    function fillFoodOptions(category){
+      foodSelect.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = category ? 'Alimento' : 'Escolha a categoria';
+      placeholder.disabled = true;
+      placeholder.selected = true;
+      foodSelect.appendChild(placeholder);
+      if(!category) return;
+      FOOD_DB.filter(x=>x.cat===category).forEach(x=>{
+        const opt = document.createElement('option');
+        opt.value = x.id; opt.textContent = x.name;
+        foodSelect.appendChild(opt);
+      });
+    }
+    fillFoodOptions('');
+
+    wrap.className='item-row';
+    wrap.appendChild(categorySelect);
+    wrap.appendChild(foodSelect);
+    wrap.appendChild(document.createElement('span'));
+    wrap.appendChild(document.createElement('span'));
+
+    const rm = document.createElement('button');
+    rm.className='rm'; rm.textContent='×';
+    wrap.appendChild(rm);
+
+    categorySelect.addEventListener('change',()=>{
+      fillFoodOptions(categorySelect.value);
+    });
+    foodSelect.addEventListener('change',()=>{
+      const selected = FOOD_MAP[foodSelect.value];
+      if(!selected) return;
+      item.foodId = selected.id;
+      item.qty = selected.dq;
+      renderAll(); scheduleSave();
+    });
+    rm.addEventListener('click',()=>{
+      dayData[mealKey].splice(idx,1); renderAll();
+    });
+    rowsEl.appendChild(wrap);
+    return;
+  }
+
+  const f = FOOD_MAP[item.foodId];
 
   wrap.className='item-row';
-  wrap.appendChild(select);
+  const nameSpan = document.createElement('span');
+  nameSpan.className='food-name';
+  nameSpan.textContent = f ? f.name : 'Alimento indisponível';
+  wrap.appendChild(nameSpan);
 
   const qtyInput = document.createElement('input');
   qtyInput.type='number'; qtyInput.step='1'; qtyInput.value=item.qty;
   wrap.appendChild(qtyInput);
 
   const unitSpan = document.createElement('span');
-  unitSpan.className='unit'; unitSpan.textContent = pluralUnit(f.unit, item.qty);
+  unitSpan.className='unit'; unitSpan.textContent = f ? pluralUnit(f.unit, item.qty) : '';
   wrap.appendChild(unitSpan);
 
   const rm = document.createElement('button');
   rm.className='rm'; rm.textContent='×';
   wrap.appendChild(rm);
 
-  select.addEventListener('change',()=>{
-    item.foodId = select.value;
-    item.qty = FOOD_MAP[item.foodId].dq;
-    renderAll(); scheduleSave();
-  });
   qtyInput.addEventListener('input',()=>{
     item.qty = parseFloat(qtyInput.value)||0;
-    unitSpan.textContent = pluralUnit(f.unit, item.qty);
+    unitSpan.textContent = f ? pluralUnit(f.unit, item.qty) : '';
     renderSummary(); updateMealHeader(mealKey); scheduleSave();
   });
   rm.addEventListener('click',()=>{
@@ -1380,7 +1454,7 @@ function renderRow(rowsEl, mealKey, item, idx){
 function updateMealHeader(mealKey){
   const t = mealTotals(mealKey);
   const card = document.querySelector(`.rows[data-meal="${mealKey}"]`).closest('.meal');
-  card.querySelector('h2 small').textContent = `${Math.round(t.kcal)} kcal · ${t.prot.toFixed(1)}g prot.`;
+  card.querySelector('.meal-macros').outerHTML = mealMacrosHtml(t);
 }
 
 function kpiCard(label, value, unit, status, text){
@@ -1560,6 +1634,7 @@ async function saveDay(){
     const rows = [];
     MEALS.forEach(m=>{
       dayData[m.key].forEach(item=>{
+        if(!item.foodId) return;
         const v = computeItemValues(item);
         const row = {
           entry_date: currentDate,
